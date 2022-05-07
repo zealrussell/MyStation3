@@ -3,10 +3,14 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_drone.xml" value="0.1431159420289855" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_main.xml" value="0.1431159420289855" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_map.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_splash.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_usbcamera.xml" value="0.264" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/listitem_device.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/menu/main_toobar.xml" value="0.23697916666666666" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/menu/menu_toolbar.xml" value="0.23697916666666666" />
       </map>
     </option>
   </component>

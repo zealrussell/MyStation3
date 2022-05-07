@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MapActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:minHeight="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:theme="@style/Theme.Toolbar"
+            app:navigationIcon="@drawable/back"
+            app:title="工具" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <com.baidu.mapapi.map.MapView
+                android:id="@+id/mapView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            </com.baidu.mapapi.map.MapView>
+
+            <!-- -->
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="250dp"
+                android:layout_height="150dp"
+                android:alpha="0.4" />
+
+            <ImageButton
+                android:id="@+id/btn_scale"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="25dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="25dp"
+                android:background="@drawable/multiply" />
+
+            <!---->
+            <ImageButton
+                android:id="@+id/btn_backward"
+                android:layout_width="100dp"
+                android:layout_height="50dp"
+
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="75dp"
+                android:layout_marginBottom="50dp"
+                android:background="@drawable/backward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_forward"
+                android:layout_width="100dp"
+                android:layout_height="50dp"
+                android:layout_above="@+id/btn_hold"
+                android:layout_marginStart="75dp"
+                android:background="@drawable/forward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_hold"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="100dp"
+                android:layout_marginBottom="100dp"
+                android:background="@drawable/hold"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_leftward"
+                android:layout_width="50dp"
+                android:layout_height="100dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="50dp"
+                android:layout_marginBottom="75dp"
+                android:background="@drawable/leftward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_rightward"
+                android:layout_width="50dp"
+                android:layout_height="100dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="75dp"
+                android:layout_toEndOf="@+id/btn_hold"
+                android:background="@drawable/rightward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_upward"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="125dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="50dp"
+                android:background="@drawable/upward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+            <ImageButton
+                android:id="@+id/btn_downward"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="25dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="50dp"
+                android:background="@drawable/downward"
+                tools:ignore="SpeakableTextPresentCheck" />
+
+        </RelativeLayout>
+
+
+    </LinearLayout>
+
+</LinearLayout>

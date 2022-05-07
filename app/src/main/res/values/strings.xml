@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">MyStation3</string>
+
+    <!--zeal string-->
+    <string name="connect">连接</string>
+    <string name="return_to_launch">返航</string>
+    <string name="kill">强制结束</string>
+    <string name="takeoff">起飞</string>
+    <string name="land">降落</string>
+    <string name="camera">图传</string>
+    <string name="about">关于</string>
+    <string name="forward">前进</string>
+    <string name="backward">后退</string>
+    <string name="leftward">向左</string>
+    <string name="rightward">向右</string>
+    <string name="upward">上升</string>
+    <string name="downward">下降</string>
+    <string name="multiply">放大</string>
+    <string name="divide">缩小</string>
 </resources>

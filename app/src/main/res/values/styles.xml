@@ -8,4 +8,13 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Theme.Toolbar" parent="ThemeOverlay.AppCompat.Light" >
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="Theme.Button" parent="Widget.AppCompat.Button">
+        <item name="android:textSize">30px</item>
+        <item name="android:width">100dp</item>
+        <item name="android:height">100dp</item>
+    </style>
 </resources>
