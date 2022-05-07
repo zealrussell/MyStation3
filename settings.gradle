@@ -1,0 +1,3 @@
+
+rootProject.name = "MyStation3"
+include ':app'
