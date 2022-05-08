@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -27,16 +28,25 @@ import com.baidu.mapapi.map.Overlay;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.zeal.mystation3.application.MyApplication;
 import com.zeal.mystation3.entity.MyPosition;
+import com.zeal.mystation3.utils.FileUtils;
 import com.zeal.mystation3.view.SplashActivity;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import io.mavsdk.System;
 import io.mavsdk.action.Action;
+import io.mavsdk.log_files.LogFiles;
 import io.mavsdk.mavsdkserver.MavsdkServer;
 import io.mavsdk.telemetry.Telemetry;
 
@@ -45,6 +55,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     //private static final Logger logger = LoggerFactory.getLogger(MapActivity.class);
     private static final DecimalFormat df = new DecimalFormat("#0.000000");
+    //private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-ddThh:mm:ssZ");
+    private static final String PATH = "/storage/emulated/0/" + MyApplication.DIRECTORY_NAME +"/logs/";
+    //private static final String MYDATE = LocalDateTime.now().format(formatter);
     private static final String TAG = "ZEALTAG";
     private static final String BACKEND_IP_ADDRESS = "127.0.0.1";
     private static int PORT = 0;
@@ -69,6 +82,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private static float AAM = 0F;
     private static float RAM = 0F;
     private static double HEADING = 0.0;
+
+    private static float ROLL;
+    private static float PITCH;
+    private static float YAW;
+    private static long TIMESTAMP;
     // 一些经纬度
     private static final LatLng GEO_NJUST = new LatLng(32.024927, 118.854396);
     private static LatLng GEO_HOME;
@@ -87,6 +105,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private static Overlay droneOverlay;
     private static Overlay homeOverlay;
     private final List<LatLng> points = new ArrayList<>();
+    private final List<MyPosition> positionsLog = new ArrayList<>();
 
     // UI控件
     private TextView tv;
@@ -123,6 +142,15 @@ public class MapActivity extends Activity implements View.OnClickListener {
         //在activity执行onDestroy时执行mMapView.onDestroy()，实现地图生命周期管理
         mMapView.onDestroy();
         try {
+            StringBuilder txt = new StringBuilder();
+            txt.append("----------开始日志--------\n");
+            for (MyPosition pos : positionsLog){
+                txt.append(pos.formLog());
+            }
+            txt.append("----------结束日志--------\n");
+            storeLog(txt.toString());
+
+            positionsLog.clear();
             drone.dispose();
             mavsdkServer.stop();
         }catch (Exception e) {
@@ -290,14 +318,19 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 //String.format("%.6f",data.getRam());
                 tv.setText(tvText);
 
+                // 将当前位置加入集合
+                positionsLog.add(new MyPosition(LATITUDE,LONGITUDE,AAM,RAM,ROLL,PITCH,YAW,TIMESTAMP));
                 // 清除无人机图标 并 重设
                 clearOverlay(droneOverlay);
                 droneOverlay = drawOverlay(
                         new LatLng(LATITUDE, LONGITUDE)
-                        , R.drawable.plane);
+                        , R.drawable.plane,
+                        (float) HEADING);
             } else if (msg.what == MapActivity.UPDATE_TOAST) {
                 showToast((String) msg.obj);
             }
+
+
         }
     };
 
@@ -346,10 +379,22 @@ public class MapActivity extends Activity implements View.OnClickListener {
                         }
                 );
 
-        telemetry.getHeading().subscribe(heading -> {
+        // 获取朝向
+        telemetry.getHeading()
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(heading -> {
             HEADING = heading.getHeadingDeg();
         });
 
+        //获取xyz轴偏角
+        telemetry.getAttitudeEuler()
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(eulerAngle -> {
+                    ROLL = eulerAngle.getRollDeg();
+                    PITCH = eulerAngle.getPitchDeg();
+                    YAW = eulerAngle.getYawDeg();
+                    TIMESTAMP = eulerAngle.getTimestampUs();
+        });
 
     }
 
@@ -649,6 +694,28 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
+     * 根据朝向添加Overlay
+     * @param point 位置
+     * @param bitmapID 图id
+     * @param heading 朝向
+     * @return 覆盖物对象
+     */
+    private Overlay drawOverlay(LatLng point, int bitmapID,float heading) {
+        BitmapDescriptor bitmap = BitmapDescriptorFactory.fromResource(bitmapID);
+        //构建MarkerOption，用于在地图上添加Marker
+        OverlayOptions option = new MarkerOptions()
+                .position(point)
+                .icon(bitmap)
+                .rotate(heading)
+                .anchor(0.5f,0.5f);
+
+        Log.d("Marker","Draw a " + bitmapID + ": " + option);
+        //在地图上添加Marker，并显示
+        return mBaiduMap.addOverlay(option);
+
+    }
+
+    /**
      * 绘制轨迹
      */
     private void drawTrajectory() {
@@ -683,7 +750,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
         myHandler.sendMessage(message);
     }
 
-
+    private void storeLog(String txt){
+        FileUtils.writeTxtToFile(txt, PATH,
+                LocalDateTime.now().toString() + "log.txt");
+    }
 
 
 

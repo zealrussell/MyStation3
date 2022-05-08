@@ -21,17 +21,10 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * UncaughtException handler class
- * 
- * @author jiangdg on 2017/6/27.
- * 
- */
+// 处理程序崩溃信息
 public class CrashHandler implements UncaughtExceptionHandler {
 
 	public static final String TAG = "CrashHandler";
-
-	public static final String PROGRAM_BROKEN_ACTION = "com.teligen.wccp.PROGRAM_BROKEN";
 
 	private UncaughtExceptionHandler mDefaultHandler;
 	private static CrashHandler instance = new CrashHandler();

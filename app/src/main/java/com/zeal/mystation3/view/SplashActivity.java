@@ -20,10 +20,6 @@ import com.zeal.mystation3.R;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * permission checking
- * Created by jiangdongguo on 2019/6/27.
- */
 
 public class SplashActivity extends AppCompatActivity {
     private static final String[] REQUIRED_PERMISSION_LIST = new String[]{

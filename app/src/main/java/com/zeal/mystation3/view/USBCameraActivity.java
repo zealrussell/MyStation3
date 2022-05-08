@@ -44,14 +44,9 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-/**
- * UVCCamera use demo
- * <p>
- * Created by jiangdongguo on 2017/9/30.
- */
 
 public class USBCameraActivity extends AppCompatActivity implements CameraDialog.CameraDialogParent, CameraViewInterface.Callback {
-    private static final String TAG = "Debug";
+    private final String TAG = USBCameraActivity.this.getClass().getSimpleName();
     //@BindView(R.id.camera_view)
     public View mTextureView;
     //@BindView(R.id.toolbar)
@@ -70,6 +65,8 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
     private boolean isRequest;
     private boolean isPreview;
 
+    //----------------------------------------运行前检查--------------------------------
+    // 获取USB设备信息
     private List<DeviceInfo> getUSBDevInfo() {
         if(mCameraHelper == null)
             return null;
@@ -84,6 +81,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         return devInfos;
     }
 
+    // 弹出 检查设备对话框
     private void popCheckDevDialog() {
         List<DeviceInfo> infoList = getUSBDevInfo();
         if (infoList==null || infoList.isEmpty()) {
@@ -182,6 +180,41 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         });
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // step.2 register USB event broadcast
+        if (mCameraHelper != null) {
+            mCameraHelper.registerUSB();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // step.3 unregister USB event broadcast
+        if (mCameraHelper != null) {
+            mCameraHelper.unregisterUSB();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        FileUtils.releaseFile();
+        // step.4 release uvc camera resources
+        if (mCameraHelper != null) {
+            mCameraHelper.release();
+        }
+    }
+
+
+
+    //-------------------------------------------主要代码----------------------------
+
+    /**
+     *  初始化地图
+     */
     private void initView() {
         mToolbar = findViewById(R.id.toolbar);
         mSeekBrightness = findViewById(R.id.seekbar_brightness);
@@ -231,41 +264,36 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // step.2 register USB event broadcast
-        if (mCameraHelper != null) {
-            mCameraHelper.registerUSB();
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        // step.3 unregister USB event broadcast
-        if (mCameraHelper != null) {
-            mCameraHelper.unregisterUSB();
-        }
-    }
-
+    /**
+     * 创建菜单
+     * @param menu 菜单
+     * @return bool
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_toobar, menu);
         return true;
     }
 
+    /**
+     * 菜单点击事件
+     * @param item 菜单按钮
+     * @return bool
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            // 拍照按钮
             case R.id.menu_takepic:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
                     showShortMsg("sorry,camera open failed");
                     return super.onOptionsItemSelected(item);
                 }
+                // 保存路径：root/MyStation/images/时间.jpeg
                 String picPath = UVCCameraHelper.ROOT_PATH + MyApplication.DIRECTORY_NAME +"/images/"
                         + System.currentTimeMillis() + UVCCameraHelper.SUFFIX_JPEG;
 
+                // 开始拍照， 结果回调
                 mCameraHelper.capturePicture(picPath, new AbstractUVCCameraHandler.OnCaptureListener() {
                     @Override
                     public void onCaptureResult(String path) {
@@ -280,13 +308,16 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                         });
                     }
                 });
-
                 break;
+
+            // 录像按钮：如果没录像就拍，在就停止
             case R.id.menu_recording:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
                     showShortMsg("sorry,camera open failed");
                     return super.onOptionsItemSelected(item);
                 }
+
+
                 if (!mCameraHelper.isPushing()) {
                     String videoPath = UVCCameraHelper.ROOT_PATH + MyApplication.DIRECTORY_NAME +"/videos/" + System.currentTimeMillis()
                             + UVCCameraHelper.SUFFIX_MP4;
@@ -331,6 +362,8 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                     mSwitchVoice.setEnabled(true);
                 }
                 break;
+
+            // 分辨率按钮
             case R.id.menu_resolution:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
                     showShortMsg("sorry,camera open failed");
@@ -338,6 +371,8 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                 }
                 showResolutionListDialog();
                 break;
+
+            // 聚焦按钮
             case R.id.menu_focus:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
                     showShortMsg("sorry,camera open failed");
@@ -349,6 +384,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         return super.onOptionsItemSelected(item);
     }
 
+    // 展现 分辨率对话框
     private void showResolutionListDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(USBCameraActivity.this);
         View rootView = LayoutInflater.from(USBCameraActivity.this).inflate(R.layout.layout_dialog_list, null);
@@ -393,25 +429,14 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         return resolutions;
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        FileUtils.releaseFile();
-        // step.4 release uvc camera resources
-        if (mCameraHelper != null) {
-            mCameraHelper.release();
-        }
-    }
 
-    private void showShortMsg(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }
-
+    // 获取 USB
     @Override
     public USBMonitor getUSBMonitor() {
         return mCameraHelper.getUSBMonitor();
     }
 
+    // 取消对话框
     @Override
     public void onDialogResult(boolean canceled) {
         if (canceled) {
@@ -419,10 +444,16 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         }
     }
 
+    /**
+     * 判断相机是否打开
+     * @return bool
+     */
     public boolean isCameraOpened() {
         return mCameraHelper.isCameraOpened();
     }
 
+
+    //---------------------- 预览功能----------------
     @Override
     public void onSurfaceCreated(CameraViewInterface view, Surface surface) {
         if (!isPreview && mCameraHelper.isCameraOpened()) {
@@ -443,4 +474,10 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             isPreview = false;
         }
     }
+
+    // 打印short log
+    private void showShortMsg(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
 }

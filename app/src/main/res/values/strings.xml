@@ -2,13 +2,18 @@
     <string name="app_name">MyStation3</string>
 
     <!--zeal string-->
+
+    <!--main-->
+    <string name="map">地图</string>
+    <string name="about">关于</string>
+
     <string name="connect">连接</string>
     <string name="return_to_launch">返航</string>
     <string name="kill">强制结束</string>
     <string name="takeoff">起飞</string>
     <string name="land">降落</string>
     <string name="camera">图传</string>
-    <string name="about">关于</string>
+
     <string name="forward">前进</string>
     <string name="backward">后退</string>
     <string name="leftward">向左</string>
@@ -17,4 +22,10 @@
     <string name="downward">下降</string>
     <string name="multiply">放大</string>
     <string name="divide">缩小</string>
+
+    <string name="takepic">拍照</string>
+    <string name="start_record">开始录像</string>
+    <string name="stop_record">停止录像</string>
+    <string name="focus">对焦</string>
+    <string name="resolution">分辨率</string>
 </resources>

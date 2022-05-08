@@ -7,15 +7,11 @@ import com.baidu.mapapi.SDKInitializer;
 import com.zeal.mystation3.utils.CrashHandler;
 
 
-/**application class
- *
- * Created by jianddongguo on 2017/7/20.
- */
-
 public class MyApplication extends Application {
+
     private CrashHandler mCrashHandler;
     // File Directory in sd card
-    public static final String DIRECTORY_NAME = "USBCamera";
+    public static final String DIRECTORY_NAME = "MyStation";
 
     @Override
     public void onCreate() {

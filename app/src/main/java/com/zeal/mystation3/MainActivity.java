@@ -16,12 +16,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        findViewById(R.id.btn_cm).setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, SplashActivity.class);
+
+        findViewById(R.id.btn_map).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, MapActivity.class);
             startActivity(intent);
         });
-        findViewById(R.id.btn_mapp).setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, MapActivity.class);
+
+        findViewById(R.id.btn_about).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SplashActivity.class);
             startActivity(intent);
         });
 

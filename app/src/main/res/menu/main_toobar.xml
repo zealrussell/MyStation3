@@ -3,18 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/menu_takepic"
-        android:title="takingPhotos(拍照)"
+        android:title="@string/takepic"
         app:showAsAction="never" />
     <item
         android:id="@+id/menu_recording"
-        android:title="recording(录像)"
+        android:title="@string/start_record"
         app:showAsAction="never" />
     <item
         android:id="@+id/menu_focus"
-        android:title="cameraFocus(对焦)"
+        android:title="@string/focus"
         app:showAsAction="never" />
     <item
         android:id="@+id/menu_resolution"
-        android:title="resolution(分辨率)"
+        android:title="@string/resolution"
         app:showAsAction="never" />
 </menu>
