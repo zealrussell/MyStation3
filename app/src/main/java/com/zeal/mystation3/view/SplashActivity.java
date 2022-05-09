@@ -22,6 +22,8 @@ import java.util.List;
 
 
 public class SplashActivity extends AppCompatActivity {
+
+    // 所需权限：写外存、录音、摄像
     private static final String[] REQUIRED_PERMISSION_LIST = new String[]{
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.RECORD_AUDIO,
@@ -43,10 +45,14 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
+    // 版本是否大于 23
     private boolean isVersionM() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
     }
 
+    /**
+     * 检查权限
+     */
     private void checkAndRequestPermissions() {
         mMissPermissions.clear();
         for (String permission : REQUIRED_PERMISSION_LIST) {
@@ -84,6 +90,9 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 开始图传页面，延时2s
+     */
     private void startMainActivity() {
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -91,7 +100,9 @@ public class SplashActivity extends AppCompatActivity {
                 startActivity(new Intent(SplashActivity.this, USBCameraActivity.class));
                 SplashActivity.this.finish();
             }
-        }, 3000);
+        }, 2000);
     }
+
+
 }
 

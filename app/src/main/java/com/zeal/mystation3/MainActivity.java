@@ -6,6 +6,7 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.zeal.mystation3.view.MapActivity;
 import com.zeal.mystation3.view.SplashActivity;
 
 public class MainActivity extends AppCompatActivity {

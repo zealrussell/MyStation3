@@ -1,7 +1,7 @@
-package com.zeal.mystation3;
+package com.zeal.mystation3.entity;
 
-/**USB设备信息
- * Created by jianddongguo on 2017/11/12.
+/**
+ * USB设备信息
  */
 
 public class DeviceInfo {

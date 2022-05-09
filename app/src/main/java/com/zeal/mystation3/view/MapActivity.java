@@ -1,10 +1,9 @@
-package com.zeal.mystation3;
+package com.zeal.mystation3.view;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -28,25 +27,19 @@ import com.baidu.mapapi.map.Overlay;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.zeal.mystation3.R;
 import com.zeal.mystation3.application.MyApplication;
 import com.zeal.mystation3.entity.MyPosition;
 import com.zeal.mystation3.utils.FileUtils;
-import com.zeal.mystation3.view.SplashActivity;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.text.DecimalFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import io.mavsdk.System;
 import io.mavsdk.action.Action;
-import io.mavsdk.log_files.LogFiles;
 import io.mavsdk.mavsdkserver.MavsdkServer;
 import io.mavsdk.telemetry.Telemetry;
 
@@ -60,6 +53,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     //private static final String MYDATE = LocalDateTime.now().format(formatter);
     private static final String TAG = "ZEALTAG";
     private static final String BACKEND_IP_ADDRESS = "127.0.0.1";
+    private static final String ADDRESS = "udp://:14550";
     private static int PORT = 0;
     private boolean scaleFlag;
     private boolean connectFlag;
@@ -315,9 +309,12 @@ public class MapActivity extends Activity implements View.OnClickListener {
                         "aam: " + df.format(AAM) + "\n" +
                         "ram: " + df.format(RAM) + "\n" +
                         "heading:" + HEADING;
+                String txt =  "YAW: " + df.format(YAW) + "\n" +
+                        "PITCH: " + df.format(PITCH) + "\n" +
+                        "ROLL: " + df.format(ROLL) + "\n" +
+                        "heading:" + HEADING;
                 //String.format("%.6f",data.getRam());
                 tv.setText(tvText);
-
                 // 将当前位置加入集合
                 positionsLog.add(new MyPosition(LATITUDE,LONGITUDE,AAM,RAM,ROLL,PITCH,YAW,TIMESTAMP));
                 // 清除无人机图标 并 重设
@@ -340,7 +337,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @SuppressLint("CheckResult")
     private void connect(){
         if(drone != null) return;
-        PORT = mavsdkServer.run();
+        PORT = mavsdkServer.run(ADDRESS);
         showToast("Mavport is " + PORT);
         drone = new System(BACKEND_IP_ADDRESS, PORT);
 
@@ -348,14 +345,15 @@ public class MapActivity extends Activity implements View.OnClickListener {
         telemetry = drone.getTelemetry();
 
 
-        // 每500ms更新 位置信息
+        // 每500ms更新
+        // 获取位置信息
         telemetry.getPosition()
                 .doOnComplete(() -> {
-                    toastMessage("Position subscribed");
-                    Log.i(TAG, "Position subscribed");
+                    //toastMessage("Flight Complecated!!");
+                    Log.i(TAG, "Finish position");
                 })
                 .doOnError(throwable -> {
-                    toastMessage("Failed to get position: " + throwable.getMessage());
+                    //toastMessage("Failed to get position: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get position: " + throwable.getMessage());
                 })
                 .sample(500,TimeUnit.MILLISECONDS)
@@ -366,9 +364,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
                             AAM = pos.getAbsoluteAltitudeM();
                             RAM = pos.getRelativeAltitudeM();
 
-                            Message updatePosMessage = Message.obtain();
-                            updatePosMessage.what = MapActivity.UPDATE_POSITION;
-                            myHandler.sendMessage(updatePosMessage);
+//                            Message updatePosMessage = Message.obtain();
+//                            updatePosMessage.what = MapActivity.UPDATE_POSITION;
+//                            myHandler.sendMessage(updatePosMessage);
 
 
                             Log.v("MyPOSITION", "GOT THE POSITION:"
@@ -381,19 +379,29 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
         // 获取朝向
         telemetry.getHeading()
-                .sample(500,TimeUnit.MILLISECONDS)
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get heading: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get heading: " + throwable.getMessage());
+                })
                 .subscribe(heading -> {
             HEADING = heading.getHeadingDeg();
         });
 
-        //获取xyz轴偏角
+        //获取xyz轴偏角、时间戳
         telemetry.getAttitudeEuler()
-                .sample(500,TimeUnit.MILLISECONDS)
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get euler: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get euler: " + throwable.getMessage());
+                })
                 .subscribe(eulerAngle -> {
                     ROLL = eulerAngle.getRollDeg();
                     PITCH = eulerAngle.getPitchDeg();
                     YAW = eulerAngle.getYawDeg();
                     TIMESTAMP = eulerAngle.getTimestampUs();
+
+                    Message updatePosMessage = Message.obtain();
+                    updatePosMessage.what = MapActivity.UPDATE_POSITION;
+                    myHandler.sendMessage(updatePosMessage);
         });
 
     }
@@ -404,33 +412,33 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @SuppressLint("CheckResult")
     public void takeoff(){
         initHome();
-
-        telemetry.getArmed()
-                .take(1)
-                .subscribe(isArmed -> {
-                    toastMessage("Check arm: " + isArmed);
-                    if(isArmed) {
-                        action.setTakeoffAltitude(2.5f)
-                                .andThen(action.takeoff()
-                                                .doOnComplete(() -> {
-                                                    toastMessage("Take off with armed!");
-                                                    Log.i(TAG, "Take off whit armed");
-                                                })
-                                ).subscribe();
-                    } else {
-                        action.arm()
-                                .delay(200,TimeUnit.MILLISECONDS)
-                                .andThen(
-                                        action.setTakeoffAltitude(2.5f)
-                                                .andThen(action.takeoff())
-                                )
-                                .doOnComplete(()-> {
-                                    toastMessage("The drone is takeoff to 2.5m");
-                                    Log.i(TAG, "The drone is takeoff to 2.5m");
-                                })
-                                .subscribe();
-                    }
-                });
+        action.takeoff().subscribe();
+//        telemetry.getArmed()
+//                .take(1)
+//                .subscribe(isArmed -> {
+//                    toastMessage("Check arm: " + isArmed);
+//                    if(isArmed) {
+//                        action.setTakeoffAltitude(250f)
+//                                .andThen(action.takeoff()
+//                                                .doOnComplete(() -> {
+//                                                    toastMessage("Take off with armed!");
+//                                                    Log.i(TAG, "Take off whit armed");
+//                                                })
+//                                ).subscribe();
+//                    } else {
+//                        action.arm()
+//                                .delay(2,TimeUnit.SECONDS)
+//                                .andThen(
+//                                        action.setTakeoffAltitude(250f)
+//                                                .andThen(action.takeoff())
+//                                )
+//                                .doOnComplete(()-> {
+//                                    toastMessage("The drone is takeoff to 2.5m");
+//                                    Log.i(TAG, "The drone is takeoff to 2.5m");
+//                                })
+//                                .subscribe();
+//                    }
+//                });
 
 
     }
@@ -523,16 +531,17 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private void moveTo(int pos) {
         getPosition();
 
-        if(current.getAam() <= 0.5f) {
-            showToast("Please takeoff before move!");
-            return;
-        }
+//        if(current.getAam() <= 0.5f) {
+//            showToast("Please takeoff before move!");
+//            return;
+//        }
 
         if(pos == 1) {
             next.setAll(current.getLatitude() + OFFSET,
                     current.getLongitude(),
                     current.getAam(),
                     current.getRam());
+            next.setYaw(current.getYaw());
         } else if (pos == 2) {
             next.setAll(current.getLatitude() - OFFSET,
                     current.getLongitude(),
@@ -568,7 +577,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
         } else return;
 
 
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + pos + "\n" + next);
                     Log.i(TAG,"Move to " + pos + next);

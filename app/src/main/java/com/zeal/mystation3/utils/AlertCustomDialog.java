@@ -1,4 +1,4 @@
-package com.zeal.mystation3;
+package com.zeal.mystation3.utils;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -8,12 +8,12 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import com.zeal.mystation3.R;
+
 import java.util.List;
 
 /**
  * 通用对话框
- * <p>
- * Created by jianddongguo on 2017/11/12.
  */
 
 public class AlertCustomDialog {

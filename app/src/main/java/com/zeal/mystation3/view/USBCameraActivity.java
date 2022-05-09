@@ -33,15 +33,14 @@ import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.common.AbstractUVCCameraHandler;
 import com.serenegiant.usb.encoder.RecordParams;
 import com.serenegiant.usb.widget.CameraViewInterface;
-import com.zeal.mystation3.AlertCustomDialog;
-import com.zeal.mystation3.DeviceInfo;
+import com.zeal.mystation3.utils.AlertCustomDialog;
+import com.zeal.mystation3.entity.DeviceInfo;
 import com.zeal.mystation3.R;
 import com.zeal.mystation3.application.MyApplication;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import butterknife.BindView;
 import butterknife.ButterKnife;
 
 
@@ -66,40 +65,11 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
     private boolean isPreview;
 
     //----------------------------------------运行前检查--------------------------------
-    // 获取USB设备信息
-    private List<DeviceInfo> getUSBDevInfo() {
-        if(mCameraHelper == null)
-            return null;
-        List<DeviceInfo> devInfos = new ArrayList<>();
-        List<UsbDevice> list = mCameraHelper.getUsbDeviceList();
-        for(UsbDevice dev : list) {
-            DeviceInfo info = new DeviceInfo();
-            info.setPID(dev.getVendorId());
-            info.setVID(dev.getProductId());
-            devInfos.add(info);
-        }
-        return devInfos;
-    }
 
-    // 弹出 检查设备对话框
-    private void popCheckDevDialog() {
-        List<DeviceInfo> infoList = getUSBDevInfo();
-        if (infoList==null || infoList.isEmpty()) {
-            Toast.makeText(USBCameraActivity.this, "Find devices failed.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        final List<String> dataList = new ArrayList<>();
-        for(DeviceInfo deviceInfo : infoList){
-            dataList.add("Device：PID_"+deviceInfo.getPID()+" & "+"VID_"+deviceInfo.getVID());
-        }
-        AlertCustomDialog.createSimpleListDialog(this, "Please select USB devcie", dataList, new AlertCustomDialog.OnMySelectedListener() {
-            @Override
-            public void onItemSelected(int postion) {
-                mCameraHelper.requestPermission(postion);
-            }
-        });
-    }
 
+    /**
+     * USB设备监听
+     */
     private UVCCameraHelper.OnMyDevConnectListener listener = new UVCCameraHelper.OnMyDevConnectListener() {
 
         @Override
@@ -155,6 +125,47 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             showShortMsg("disconnecting");
         }
     };
+
+    /**
+     * 获取USB设备信息
+     * @return 列表
+     */
+    private List<DeviceInfo> getUSBDevInfo() {
+        if(mCameraHelper == null)
+            return null;
+        List<DeviceInfo> devInfos = new ArrayList<>();
+        List<UsbDevice> list = mCameraHelper.getUsbDeviceList();
+        for(UsbDevice dev : list) {
+            DeviceInfo info = new DeviceInfo();
+            info.setPID(dev.getVendorId());
+            info.setVID(dev.getProductId());
+            devInfos.add(info);
+        }
+        return devInfos;
+    }
+
+    /**
+     * 弹出 检查设备对话框
+     */
+    private void popCheckDevDialog() {
+        List<DeviceInfo> infoList = getUSBDevInfo();
+        if (infoList==null || infoList.isEmpty()) {
+            Toast.makeText(USBCameraActivity.this, "Find devices failed.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final List<String> dataList = new ArrayList<>();
+        for(DeviceInfo deviceInfo : infoList){
+            dataList.add("Device：PID_"+deviceInfo.getPID()+" & "+"VID_"+deviceInfo.getVID());
+        }
+
+        // 根据自定义的对话框弹出
+        AlertCustomDialog.createSimpleListDialog(this, "Please select USB device", dataList, new AlertCustomDialog.OnMySelectedListener() {
+            @Override
+            public void onItemSelected(int position) {
+                mCameraHelper.requestPermission(position);
+            }
+        });
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -213,7 +224,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
     //-------------------------------------------主要代码----------------------------
 
     /**
-     *  初始化地图
+     *  初始化UI视图
      */
     private void initView() {
         mToolbar = findViewById(R.id.toolbar);
@@ -224,7 +235,9 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         setSupportActionBar(mToolbar);
 
 
+        // 设置seekbar的最大值
         mSeekBrightness.setMax(100);
+        // 设置拖动事件
         mSeekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -243,6 +256,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
 
             }
         });
+
         mSeekContrast.setMax(100);
         mSeekContrast.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -293,7 +307,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                 String picPath = UVCCameraHelper.ROOT_PATH + MyApplication.DIRECTORY_NAME +"/images/"
                         + System.currentTimeMillis() + UVCCameraHelper.SUFFIX_JPEG;
 
-                // 开始拍照， 结果回调
+                // 开始拍照， 结果回调展示toast
                 mCameraHelper.capturePicture(picPath, new AbstractUVCCameraHandler.OnCaptureListener() {
                     @Override
                     public void onCaptureResult(String path) {
@@ -322,7 +336,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                     String videoPath = UVCCameraHelper.ROOT_PATH + MyApplication.DIRECTORY_NAME +"/videos/" + System.currentTimeMillis()
                             + UVCCameraHelper.SUFFIX_MP4;
 
-//                    FileUtils.createfile(FileUtils.ROOT_PATH + "test666.h264");
+                    // FileUtils.createFile(FileUtils.ROOT_PATH + "test666.h264");
                     // if you want to record,please create RecordParams like this
                     RecordParams params = new RecordParams();
                     params.setRecordPath(videoPath);
@@ -353,12 +367,14 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                     });
                     // if you only want to push stream,please call like this
                     // mCameraHelper.startPusher(listener);
-                    showShortMsg("start record...");
+                    showShortMsg("Start record...");
+                    item.setTitle(R.string.stop_record);
                     mSwitchVoice.setEnabled(false);
                 } else {
                     FileUtils.releaseFile();
                     mCameraHelper.stopPusher();
-                    showShortMsg("stop record...");
+                    showShortMsg("Stop record...");
+                    item.setTitle(R.string.start_record);
                     mSwitchVoice.setEnabled(true);
                 }
                 break;
@@ -366,7 +382,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             // 分辨率按钮
             case R.id.menu_resolution:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
-                    showShortMsg("sorry,camera open failed");
+                    showShortMsg("Sorry,camera open failed");
                     return super.onOptionsItemSelected(item);
                 }
                 showResolutionListDialog();
@@ -375,7 +391,7 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
             // 聚焦按钮
             case R.id.menu_focus:
                 if (mCameraHelper == null || !mCameraHelper.isCameraOpened()) {
-                    showShortMsg("sorry,camera open failed");
+                    showShortMsg("Sorry,camera open failed");
                     return super.onOptionsItemSelected(item);
                 }
                 mCameraHelper.startCameraFoucs();
@@ -384,7 +400,9 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         return super.onOptionsItemSelected(item);
     }
 
-    // 展现 分辨率对话框
+    /**
+     * 展示 分辨率对话框
+     */
     private void showResolutionListDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(USBCameraActivity.this);
         View rootView = LayoutInflater.from(USBCameraActivity.this).inflate(R.layout.layout_dialog_list, null);
@@ -401,9 +419,9 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                 final String resolution = (String) adapterView.getItemAtPosition(position);
                 String[] tmp = resolution.split("x");
                 if (tmp != null && tmp.length >= 2) {
-                    int widht = Integer.valueOf(tmp[0]);
+                    int width = Integer.valueOf(tmp[0]);
                     int height = Integer.valueOf(tmp[1]);
-                    mCameraHelper.updateResolution(widht, height);
+                    mCameraHelper.updateResolution(width, height);
                 }
                 mDialog.dismiss();
             }
@@ -414,6 +432,10 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
         mDialog.show();
     }
 
+    /**
+     * 从支持的分辨率中获取 分辨率列表
+     * @return 分辨率列表
+     */
     // example: {640x480,320x240,etc}
     private List<String> getResolutionList() {
         List<Size> list = mCameraHelper.getSupportedPreviewSizes();
