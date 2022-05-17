@@ -100,7 +100,7 @@ public class SplashActivity extends AppCompatActivity {
                 startActivity(new Intent(SplashActivity.this, USBCameraActivity.class));
                 SplashActivity.this.finish();
             }
-        }, 2000);
+        }, 500);
     }
 
 

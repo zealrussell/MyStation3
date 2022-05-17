@@ -44,6 +44,12 @@ public class MyPosition {
         this.aam = aam;
         this.ram = ram;
     }
+    public void setPos(double latitude, double longitude, float aam, float yaw) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.aam = aam;
+        this.yaw = yaw;
+    }
 
     public LatLng getLatLng(){
         return new LatLng(latitude,longitude);
@@ -121,7 +127,7 @@ public class MyPosition {
                 ", ROLL=" + roll +
                 ", PITCH=" + pitch +
                 ", YAM=" + yaw +
-                ", TIMESTAPE=" + timestamp;
+                ", TIMESTAMP=" + timestamp;
     }
 
     @Override

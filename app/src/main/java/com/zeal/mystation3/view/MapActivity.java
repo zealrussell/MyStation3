@@ -53,7 +53,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     //private static final String MYDATE = LocalDateTime.now().format(formatter);
     private static final String TAG = "ZEALTAG";
     private static final String BACKEND_IP_ADDRESS = "127.0.0.1";
-    private static final String ADDRESS = "udp://:14550";
+    private static final String ADDRESS = "udp://:14540";
     private static int PORT = 0;
     private boolean scaleFlag;
     private boolean connectFlag;
@@ -71,9 +71,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     // 方向有关变量
     private static double OFFSET = 0.00001;
-    private static double LATITUDE = 0.0;
-    private static double LONGITUDE = 0.0;
-    private static float AAM = 0F;
+    private static double LATITUDE = 32.024927;
+    private static double LONGITUDE = 118.854396;
+    private static float AAM = 2F;
     private static float RAM = 0F;
     private static double HEADING = 0.0;
 
@@ -207,9 +207,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 Intent intent = new Intent(MapActivity.this, SplashActivity.class);
                 startActivity(intent);
                 return true;
-            } else if (id == R.id.btn_about) {
-
-                return true;
             } else return false;
         });
 
@@ -304,15 +301,16 @@ public class MapActivity extends Activity implements View.OnClickListener {
             super.handleMessage(msg);
             if (msg.what == MapActivity.UPDATE_POSITION) {
 
-                String tvText = "latitude: " + df.format(LATITUDE) + "\n" +
+                String tvText =
+                        "latitude: " + df.format(LATITUDE) + "\n" +
                         "longitude: " + df.format(LONGITUDE) + "\n" +
                         "aam: " + df.format(AAM) + "\n" +
                         "ram: " + df.format(RAM) + "\n" +
-                        "heading:" + HEADING;
-                String txt =  "YAW: " + df.format(YAW) + "\n" +
+                        "heading:" + HEADING + "\n" +
+                        "YAW: " + df.format(YAW) + "\n" +
                         "PITCH: " + df.format(PITCH) + "\n" +
-                        "ROLL: " + df.format(ROLL) + "\n" +
-                        "heading:" + HEADING;
+                        "ROLL: " + df.format(ROLL) + "\n";
+
                 //String.format("%.6f",data.getRam());
                 tv.setText(tvText);
                 // 将当前位置加入集合
@@ -322,7 +320,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 droneOverlay = drawOverlay(
                         new LatLng(LATITUDE, LONGITUDE)
                         , R.drawable.plane,
-                        (float) HEADING);
+                        (float) (360.0F - HEADING));
             } else if (msg.what == MapActivity.UPDATE_TOAST) {
                 showToast((String) msg.obj);
             }
@@ -345,64 +343,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
         telemetry = drone.getTelemetry();
 
 
-        // 每500ms更新
-        // 获取位置信息
-        telemetry.getPosition()
-                .doOnComplete(() -> {
-                    //toastMessage("Flight Complecated!!");
-                    Log.i(TAG, "Finish position");
-                })
-                .doOnError(throwable -> {
-                    //toastMessage("Failed to get position: " + throwable.getMessage());
-                    Log.e(TAG, "Failed to get position: " + throwable.getMessage());
-                })
-                .sample(500,TimeUnit.MILLISECONDS)
-                .subscribe(
-                        pos -> {
-                            LATITUDE = pos.getLatitudeDeg();
-                            LONGITUDE = pos.getLongitudeDeg();
-                            AAM = pos.getAbsoluteAltitudeM();
-                            RAM = pos.getRelativeAltitudeM();
+        subscribePosition();
+        subscribeHeading();
+        subscribeAttitude();
 
-//                            Message updatePosMessage = Message.obtain();
-//                            updatePosMessage.what = MapActivity.UPDATE_POSITION;
-//                            myHandler.sendMessage(updatePosMessage);
-
-
-                            Log.v("MyPOSITION", "GOT THE POSITION:"
-                                    + LATITUDE + " "
-                                    + LONGITUDE + " "
-                                    + AAM + " "
-                                    + RAM);
-                        }
-                );
-
-        // 获取朝向
-        telemetry.getHeading()
-                .doOnError(throwable -> {
-                    toastMessage("Failed to get heading: " + throwable.getMessage());
-                    Log.e(TAG, "Failed to get heading: " + throwable.getMessage());
-                })
-                .subscribe(heading -> {
-            HEADING = heading.getHeadingDeg();
-        });
-
-        //获取xyz轴偏角、时间戳
-        telemetry.getAttitudeEuler()
-                .doOnError(throwable -> {
-                    toastMessage("Failed to get euler: " + throwable.getMessage());
-                    Log.e(TAG, "Failed to get euler: " + throwable.getMessage());
-                })
-                .subscribe(eulerAngle -> {
-                    ROLL = eulerAngle.getRollDeg();
-                    PITCH = eulerAngle.getPitchDeg();
-                    YAW = eulerAngle.getYawDeg();
-                    TIMESTAMP = eulerAngle.getTimestampUs();
-
-                    Message updatePosMessage = Message.obtain();
-                    updatePosMessage.what = MapActivity.UPDATE_POSITION;
-                    myHandler.sendMessage(updatePosMessage);
-        });
 
     }
 
@@ -412,13 +356,16 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @SuppressLint("CheckResult")
     public void takeoff(){
         initHome();
-        action.takeoff().subscribe();
+        action.arm()
+                .delay(500,TimeUnit.MILLISECONDS)
+                .andThen(action.takeoff())
+                .subscribe();
 //        telemetry.getArmed()
 //                .take(1)
 //                .subscribe(isArmed -> {
 //                    toastMessage("Check arm: " + isArmed);
 //                    if(isArmed) {
-//                        action.setTakeoffAltitude(250f)
+//                        action.setTakeoffAltitude(2.5f)
 //                                .andThen(action.takeoff()
 //                                                .doOnComplete(() -> {
 //                                                    toastMessage("Take off with armed!");
@@ -530,57 +477,58 @@ public class MapActivity extends Activity implements View.OnClickListener {
      */
     private void moveTo(int pos) {
         getPosition();
-
+        // 必须先连接
+        if(PORT == 0) return;
 //        if(current.getAam() <= 0.5f) {
 //            showToast("Please takeoff before move!");
 //            return;
 //        }
 
         if(pos == 1) {
-            next.setAll(current.getLatitude() + OFFSET,
+            next.setPos(current.getLatitude() + OFFSET,
                     current.getLongitude(),
                     current.getAam(),
-                    current.getRam());
-            next.setYaw(current.getYaw());
+                    current.getYaw());
         } else if (pos == 2) {
-            next.setAll(current.getLatitude() - OFFSET,
+            next.setPos(current.getLatitude() - OFFSET,
                     current.getLongitude(),
                     current.getAam(),
-                    current.getRam());
+                    current.getYaw());
         } else if (pos == 3) {
-            next.setAll(current.getLatitude(),
+            next.setPos(current.getLatitude(),
                     current.getLongitude() - OFFSET,
                     current.getAam(),
-                    current.getRam());
+                    current.getYaw());
         } else if (pos == 4) {
-            next.setAll(current.getLatitude(),
+            next.setPos(current.getLatitude(),
                     current.getLongitude() + OFFSET,
                     current.getAam(),
-                    current.getRam());
+                    current.getYaw());
         } else if (pos == 5) {
             if(current.getRam() >= 8.0f) {
-                showToast("The drone is to high!");
+                showToast("The drone is too high!");
                 return;
             }
-            next.setAll(current.getLatitude(),
+            next.setPos(current.getLatitude(),
                     current.getLongitude(),
                     current.getAam() + 0.5f,
-                    current.getRam());
+                    current.getYaw());
         } else if (pos == 6) {
-            if (current.getRam() <= 0.7f) {
-                showToast("The drone is to low!");
+            if (current.getRam() <= 0.2f) {
+                showToast("The drone is too low!");
+                return;
             }
-            next.setAll(current.getLatitude(),
+            next.setPos(current.getLatitude(),
                     current.getLongitude(),
                     current.getAam() - 0.5f,
-                    current.getRam());
+                    current.getYaw());
         } else return;
 
 
         action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
-                    toastMessage("    Move to " + pos + "\n" + next);
-                    Log.i(TAG,"Move to " + pos + next);
+                    toastMessage("Move to " + pos + "\n" + next);
+                    Log.i(TAG,"Move to " + pos + "\n" + next);
                     GEO_DESTINATION = next.getLatLng();
                     if(pos != 5 && pos != 6) {
                         addPosition(GEO_DESTINATION);
@@ -651,11 +599,22 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     }
 
+//    private boolean checkArm(){
+//        if(drone == null) return false;
+//        telemetry.getArmed()
+//                .take(1)
+//                .doOnError(throwable -> {
+//                    toastMessage("Failed to connect: " + throwable.getMessage());
+//                    connectFlag = true;
+//                })
+//                .subscribe();
+//    }
+
     /**
      * 更新位置，刷新
      */
     private void getPosition(){
-        current.setAll(LATITUDE,LONGITUDE,AAM,RAM);
+        current.setPos(LATITUDE,LONGITUDE,AAM,YAW);
         GEO_CURRENT = current.getLatLng();
     }
 
@@ -768,14 +727,202 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
 
     /*!----------------Deprecated----------*/
+
+    /**
+     * 订阅Attitude信息：row pitch yaw
+     */
+    private void subscribeAttitude(){
+        //获取xyz轴偏角、时间戳
+        telemetry.getAttitudeEuler()
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get euler: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get euler: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(eulerAngle -> {
+                    ROLL = eulerAngle.getRollDeg();
+                    PITCH = eulerAngle.getPitchDeg();
+                    YAW = eulerAngle.getYawDeg();
+                    TIMESTAMP = eulerAngle.getTimestampUs();
+
+                    Message updatePosMessage = Message.obtain();
+                    updatePosMessage.what = MapActivity.UPDATE_POSITION;
+                    myHandler.sendMessage(updatePosMessage);
+                });
+    }
+
+    /**
+     * 订阅Heading信息
+     */
+    private void subscribeHeading(){
+        // 获取朝向
+        telemetry.getHeading()
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get heading: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get heading: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(heading -> {
+                    HEADING = heading.getHeadingDeg();
+                });
+    }
+
+    /**
+     * 订阅Position信息
+     */
+    private void subscribePosition(){
+        // 每500ms更新
+        // 获取位置信息
+        telemetry.getPosition()
+                .doOnComplete(() -> {
+                    toastMessage("Flight Complicated!!");
+                    Log.i(TAG, "Finish position");
+                })
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get position: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get position: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(
+                        pos -> {
+                            LATITUDE = pos.getLatitudeDeg();
+                            LONGITUDE = pos.getLongitudeDeg();
+                            AAM = pos.getAbsoluteAltitudeM();
+                            RAM = pos.getRelativeAltitudeM();
+
+//                            Message updatePosMessage = Message.obtain();
+//                            updatePosMessage.what = MapActivity.UPDATE_POSITION;
+//                            myHandler.sendMessage(updatePosMessage);
+
+
+//                            Log.v("MyPOSITION", "GOT THE POSITION:"
+//                                    + LATITUDE + " "
+//                                    + LONGITUDE + " "
+//                                    + AAM + " "
+//                                    + RAM);
+                        }
+                );
+    }
+
+    /**
+     * 订阅RawGps
+     */
+    private void subscribeRawGps(){
+        telemetry.getRawGps()
+                .doOnComplete(() -> {
+                    toastMessage("Flight Complicated!!");
+                    Log.i(TAG, "Finish position");
+                })
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get RawGps: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get RawGps: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(
+                        rawGps -> {
+                            LATITUDE = rawGps.getLatitudeDeg();
+                            LONGITUDE = rawGps.getLongitudeDeg();
+                            AAM = rawGps.getAbsoluteAltitudeM();
+                        }
+                );
+    }
+
+    /**
+     * 订阅GpsGlobalOrigin：经、纬、高
+     */
+    private void subscribeGpsGlobalOrigin(){
+        telemetry.getGpsGlobalOrigin()
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get GpsGlobalOrigin: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get GpsGlobalOrigin: " + throwable.getMessage());
+                })
+                .subscribe(
+                       gpsGlobalOrigin -> {
+                           LATITUDE = gpsGlobalOrigin.getLatitudeDeg();
+                           LONGITUDE = gpsGlobalOrigin.getLongitudeDeg();
+                           AAM = gpsGlobalOrigin.getAltitudeM();
+                        }
+                );
+    }
+
+    /**
+     * 订阅电池信息：剩余电量、电压。
+     */
+    private void subscribeBattery(){
+        telemetry.getBattery()
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get Battery: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get Battery: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(
+                        battery -> {
+                            battery.getRemainingPercent();
+                            battery.getVoltageV();
+                        }
+                );
+    }
+
+    /**
+     * 订阅飞行状态：
+     */
+    private void subscribeFlightMode(){
+        telemetry.getFlightMode()
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(
+                        flightMode -> {
+                            Telemetry.FlightMode flightMode1 = flightMode;
+                        }
+                );
+    }
+
+    /**
+     * 检查数据状态
+     */
+    private void subscribeHealth(){
+        telemetry.getHealth()
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(health -> {
+                    if (!health.getIsLocalPositionOk()) {
+                        toastMessage("LocalPosition failed");
+                    } else if (!health.getIsArmable()) {
+                        toastMessage("Arm failed");
+                    } else if (!health.getIsHomePositionOk()) {
+                        toastMessage("HomePosition failed");
+                    } else if (!health.getIsGlobalPositionOk()) {
+                        toastMessage("GlobalPosition failed");
+                    }
+
+                }).dispose();
+    }
+
+    /**
+     * 获取home信息
+     */
+    private void subscribeHome(){
+        telemetry.getHome()
+                .doOnError(throwable -> {
+                    toastMessage("Failed to get Home: " + throwable.getMessage());
+                    Log.e(TAG, "Failed to get Home: " + throwable.getMessage());
+                })
+                .sample(500,TimeUnit.MILLISECONDS)
+                .subscribe(
+                        position -> {
+                            position.getLatitudeDeg();
+                            position.getLongitudeDeg();
+                            position.getAbsoluteAltitudeM();
+                        }
+                );
+    }
+
     @Deprecated
-    public void goForward(){
+    private void goForward(){
         getPosition();
-        next.setAll(current.getLatitude() + OFFSET,
+        next.setPos(current.getLatitude() + OFFSET,
                 current.getLongitude(),
                 current.getAam(),
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to "  + "\n" + next);
                     Log.i(TAG,"Move to "  + next);
@@ -795,11 +942,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @Deprecated
     public void goBackward(){
         getPosition();
-        next.setAll(current.getLatitude() - OFFSET,
+        next.setPos(current.getLatitude() - OFFSET,
                 current.getLongitude(),
                 current.getAam(),
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + "\n" + next);
                     Log.i(TAG,"Move to " + next);
@@ -817,11 +964,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @Deprecated
     public void goLeftward(){
         getPosition();
-        next.setAll(current.getLatitude(),
+        next.setPos(current.getLatitude(),
                 current.getLongitude() + OFFSET,
                 current.getAam(),
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + "\n" + next);
                     Log.i(TAG,"Move to " + next);
@@ -839,11 +986,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @Deprecated
     public void goRightward(){
         getPosition();
-        next.setAll(current.getLatitude(),
+        next.setPos(current.getLatitude(),
                 current.getLongitude() - OFFSET,
                 current.getAam(),
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + "\n" + next);
                     Log.i(TAG,"Move to " + next);
@@ -862,11 +1009,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @Deprecated
     public void goUpward(){
         getPosition();
-        next.setAll(current.getLatitude(),
+        next.setPos(current.getLatitude(),
                 current.getLongitude(),
                 current.getAam() + 0.5f,
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + "\n" + next);
                     Log.i(TAG,"Move to " + next);
@@ -882,11 +1029,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     @Deprecated
     public void goDownward(){
         getPosition();
-        next.setAll(current.getLatitude() + OFFSET,
+        next.setPos(current.getLatitude() + OFFSET,
                 current.getLongitude(),
                 current.getAam() - 0.5f,
-                current.getRam());
-        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getRam())
+                current.getYaw());
+        action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("    Move to " + "\n" + next);
                     Log.i(TAG,"Move to " + next);

@@ -42,11 +42,4 @@
         android:title="@string/camera">
     </item>
 
-    <item
-        android:id="@+id/btn_about"
-        app:showAsAction="never"
-        android:orderInCategory="6"
-        android:title="@string/about">
-    </item>
-
 </menu>

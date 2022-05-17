@@ -6,6 +6,7 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.zeal.mystation3.view.AboutActivity;
 import com.zeal.mystation3.view.MapActivity;
 import com.zeal.mystation3.view.SplashActivity;
 
@@ -24,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btn_about).setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, SplashActivity.class);
+            Intent intent = new Intent(MainActivity.this, AboutActivity.class);
             startActivity(intent);
         });
 
