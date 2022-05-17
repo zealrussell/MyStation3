@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".view.CameraActivity"
+    android:background="@color/white">
+
+    <!--    视频界面-->
+    <FrameLayout
+        android:id="@+id/gl_layout"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:background="@color/black" />
+
+    <!--    滚动视图-->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:layout_margin="0dp">
+
+            <Button
+                android:id="@+id/stop_play_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="停流"
+                android:padding="10dp"/>
+
+            <Button
+                android:id="@+id/start_play_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="取流"
+                android:layout_marginTop="0dp"/>
+
+            <Button
+                android:id="@+id/take_picture_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="拍照" />
+
+            <Button
+                android:id="@+id/record_video_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="录像"/>
+
+            <Button
+                android:id="@+id/scale_add_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="缩放+"/>
+
+            <Button
+                android:id="@+id/scale_sub_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="缩放-"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

@@ -4,7 +4,9 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/kill.xml" value="0.1395" />
-        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_about.xml" value="0.4" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/about.xml" value="0.17346014492753623" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_about.xml" value="0.264" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_camera.xml" value="0.17346014492753623" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_drone.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_main.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_map.xml" value="0.1" />

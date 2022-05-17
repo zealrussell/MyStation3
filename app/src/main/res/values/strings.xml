@@ -28,4 +28,12 @@
     <string name="stop_record">停止录像</string>
     <string name="focus">对焦</string>
     <string name="resolution">分辨率</string>
+
+    <string name="how_to_use">
+        本软件需要使用支持MAVLink协议的飞控、WiFi数传；图传功能为一单独模块，使用UVC摄像头，发送端放置在无人机上，接收端通过OTG连接到手机端。控制软件时需要先点“连接”，然后点“起飞”，即可移动。
+    </string>
+    <string name="author">制作者：曾子昕</string>
+    <string name="mail">Mail: zzxnow@foxmail.com</string>
+    <string name="present">Proudly present by ----ZEAL----</string>
+    <string name="introduction">无人机地面站软件介绍</string>
 </resources>

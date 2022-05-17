@@ -58,6 +58,9 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".view.CameraActivity"
+            android:exported="false" />
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="CFSHLmpNaQRzk9C3FysvuhT2Gpf3n5zp" />
