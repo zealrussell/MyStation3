@@ -7,6 +7,8 @@
     <string name="map">地图</string>
     <string name="about">关于</string>
 
+    <string name="scale_btn_des">点击按钮切换移动距离</string>
+    <string name="text_btn_des">点击按钮切换textview</string>
     <string name="connect">连接</string>
     <string name="return_to_launch">返航</string>
     <string name="kill">强制结束</string>

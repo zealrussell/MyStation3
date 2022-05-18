@@ -67,6 +67,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private Action action;
     private Telemetry telemetry;
 
+    private static String valueInfoText;
+    private static String stateInfoText;
+    private boolean infoFlag;
     // Handler消息
     public static final int UPDATE_POSITION = 1;
     public static final int UPDATE_TOAST = 2;
@@ -105,7 +108,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     // UI控件
     private TextView tv;
-    private ImageButton scaleBtn;
+    private ImageButton scaleBtn, changeTextBtn;
 
 
     @Override
@@ -182,6 +185,8 @@ public class MapActivity extends Activity implements View.OnClickListener {
         findViewById(R.id.btn_downward).setOnClickListener(this);
         scaleBtn = findViewById(R.id.btn_scale);
         scaleBtn.setOnClickListener(this);
+        changeTextBtn = findViewById(R.id.btn_change_text);
+        changeTextBtn.setOnClickListener(this);
 
         // toolbar返回按钮
         toolbar.setNavigationOnClickListener(v -> finish());
@@ -245,7 +250,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
             case R.id.btn_scale:
                 changeScale();
                 break;
-
+            case R.id.btn_change_text:
+                changeViewText();
+                break;
         }
     }
 
@@ -303,23 +310,31 @@ public class MapActivity extends Activity implements View.OnClickListener {
             super.handleMessage(msg);
             if (msg.what == MapActivity.UPDATE_POSITION) {
 
-                String tvText =
-                        "latitude: " + df.format(LATITUDE) + "\n" +
-                        "longitude: " + df.format(LONGITUDE) + "\n" +
-                        "aam: " + df.format(AAM) + "\n" +
-                        "ram: " + df.format(RAM) + "\n" +
-                        "heading:" + HEADING + "\n" +
+                valueInfoText =
+                        "Latitude: " + df.format(LATITUDE) + "\n" +
+                        "Longitude: " + df.format(LONGITUDE) + "\n" +
+                        "Aam: " + df.format(AAM) + "\n" +
+                        "Ram: " + df.format(RAM) + "\n" +
+                        "Heading:" + HEADING + "\n" +
                         "PITCH: " + df.format(PITCH) + "\n" +
                         "ROLL: " + df.format(ROLL) + "\n";
 
-                String txt = "Battery: " + droneState.getBattery().getRemainingPercent() + "\n" +
+                stateInfoText =
+                        "Battery: " + droneState.getBattery().getRemainingPercent() + "\n" +
                         "Arm: " + droneState.isArmed() + "\n" +
                         "Connect: " + droneState.isConnected() + "\n" +
                         "AllOk: " + droneState.isAllOk() + "\n" +
+                        "InAir: " + droneState.isInAir() + "\n" +
                         "FlightMode: " + droneState.getFlightMode() + "\n" +
-                        "Heading: " + HEADING;
+                        "Home: " + droneState.getHome().getLatitudeDeg() + " "
+                                 + droneState.getHome().getLongitudeDeg() + "\n"
+                                 + droneState.getHome().getAbsoluteAltitudeM() + " "
+                                 + droneState.getHome().getRelativeAltitudeM();
 
-                tv.setText(txt);
+                if(!infoFlag) {
+                    tv.setText(valueInfoText);
+                } else tv.setText(stateInfoText);
+
                 // 将当前位置加入集合
                 positionsLog.add(new MyPosition(LATITUDE,LONGITUDE,AAM,RAM,ROLL,PITCH,YAW,TIMESTAMP));
                 // 清除无人机图标 并 重设
@@ -328,6 +343,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                         new LatLng(LATITUDE, LONGITUDE)
                         , R.drawable.plane,
                         (float) (360.0F - HEADING));
+
             } else if (msg.what == MapActivity.UPDATE_TOAST) {
                 showToast((String) msg.obj);
             }
@@ -587,25 +603,18 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     }
 
+    /**
+     * 点击切换TextView
+     */
+    private void changeViewText(){
+        infoFlag = !infoFlag;
+        if (infoFlag) {
+            changeTextBtn.setBackgroundResource(R.drawable.value_info);
+        } else changeTextBtn.setBackgroundResource(R.drawable.state_info);
+    }
+
 
     /*----------------------------------- 一些工具函数 ------------------------------*/
-
-    @Deprecated
-    private void checkConnect(){
-        if(drone == null) return;
-        drone.getCore()
-                .getConnectionState()
-                .doOnError(throwable -> {
-                    toastMessage("Failed to connect: " + throwable.getMessage());
-                    connectFlag = true;
-                })
-                .subscribe(connectionState -> {
-                    if (connectionState.getIsConnected() == null) connectFlag = true;
-                    connectFlag = connectionState.getIsConnected();
-                    Log.v(TAG, "CheckConnect: " + connectFlag);
-                });
-
-    }
 
     /**
      * 更新位置，刷新
@@ -726,6 +735,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /*!----------------Deprecated----------*/
 
     private void subscribeAll(){
+        if (drone == null) return;
         subscribeConnect();
         subscribeAllOk();
         subscribeHealth();
@@ -740,6 +750,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
         subscribePosition();
 
     }
+
     /**
      * 订阅Attitude信息：row pitch yaw
      */
@@ -1201,7 +1212,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
         next.setPos(current.getLatitude(),
                 current.getLongitude(),
                 current.getAam(),
-                current.getYaw() - 45);
+                current.getYaw() - 45f);
 
         action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
@@ -1224,7 +1235,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
         next.setPos(current.getLatitude(),
                 current.getLongitude(),
                 current.getAam(),
-                current.getYaw() + 45);
+                current.getYaw() + 45f);
 
         action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{

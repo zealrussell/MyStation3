@@ -3,16 +3,23 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/downward.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/hold.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/home.xml" value="0.1395" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/ic_flight_land.xml" value="0.1395" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/ic_launcher_background.xml" value="0.1395" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/kill.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/multiply.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/plane.xml" value="0.1395" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/return_to_launch.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/state_info.xml" value="0.1395" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/drawable/value_info.xml" value="0.1395" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/about.xml" value="0.17346014492753623" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_about.xml" value="0.264" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_camera.xml" value="0.17346014492753623" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_drone.xml" value="0.1431159420289855" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_main.xml" value="0.1431159420289855" />
-        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_map.xml" value="0.6" />
+        <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_map.xml" value="0.33509234828496043" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_splash.xml" value="0.176" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/activity_usbcamera.xml" value="0.264" />
         <entry key="..\:/biyesheji/Code/MyStation3/app/src/main/res/layout/dialog_list_item_layout.xml" value="0.1431159420289855" />
