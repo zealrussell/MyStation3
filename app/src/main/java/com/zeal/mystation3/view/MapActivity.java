@@ -202,7 +202,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 kill();
                 return true;
             } else if(id == R.id.btn_connect) {
-                connect();
+                try {
+                    connect();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 return true;
             } else if (id == R.id.btn_takeoff) {
                 takeoff();
@@ -356,17 +360,23 @@ public class MapActivity extends Activity implements View.OnClickListener {
      * 连接无人机： 检查是否连接-》
      */
     @SuppressLint("CheckResult")
-    private void connect(){
+    private void connect() throws InterruptedException {
         if(drone != null) return;
         // TODO check the address before you generate your application
-        PORT = mavsdkServer.run(ADDRESS);
+        try {
+            PORT = mavsdkServer.run(ADDRESS);
+        }catch (Exception e) {
+            e.printStackTrace();
+            showToast("Run server failed");
+        }
         showToast("Mavport is " + PORT);
         drone = new System(BACKEND_IP_ADDRESS, PORT);
-
         action = drone.getAction();
         telemetry = drone.getTelemetry();
 
         subscribeAll();
+        Thread.sleep(1000);
+        initHome();
 //        subscribePosition();
 //        subscribeHeading();
 //        subscribeAttitude();
@@ -379,7 +389,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
      */
     @SuppressLint("CheckResult")
     public void takeoff(){
-        initHome();
+
         action.arm()
                 .delay(500,TimeUnit.MILLISECONDS)
                 .andThen(action.takeoff())
