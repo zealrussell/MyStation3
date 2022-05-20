@@ -57,25 +57,25 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private static final String ADDRESS = "udp://:14540";
     private static int PORT = 0;
     private boolean scaleFlag;
-    private boolean connectFlag;
+    private boolean infoFlag;
 
     // 无人机相关
     private final MavsdkServer mavsdkServer = new MavsdkServer();
     private System drone;
 
-    private static DroneState droneState = new DroneState();
+    private static final DroneState droneState = new DroneState();
     private Action action;
     private Telemetry telemetry;
 
     private static String valueInfoText;
     private static String stateInfoText;
-    private boolean infoFlag;
+
     // Handler消息
     public static final int UPDATE_POSITION = 1;
     public static final int UPDATE_TOAST = 2;
 
     // 方向有关变量
-    private static double OFFSET = 0.00001;
+    private static double OFFSET = 0.00001; // 1m
     private static double LATITUDE = 32.024927;
     private static double LONGITUDE = 118.854396;
     private static float AAM = 2F;
@@ -89,8 +89,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
     // 一些经纬度
     private static final LatLng GEO_NJUST = new LatLng(32.024927, 118.854396);
     private static LatLng GEO_HOME;
-    private static LatLng GEO_CURRENT;
-    private static LatLng GEO_DESTINATION;
 
     //
     private static final MyPosition current = new MyPosition();
@@ -281,16 +279,22 @@ public class MapActivity extends Activity implements View.OnClickListener {
      */
     private void initHome(){
         getPosition();
-        if (GEO_HOME == null)
-            GEO_HOME = current.getLatLng();
-
+        if (!droneState.getHealth().getIsHomePositionOk()) {
+            showToast("Failed to set home!Please check.");
+            return;
+        }
+        if (GEO_HOME == null ) {
+            Double latitudeDeg = droneState.getHome().getLatitudeDeg();
+            Double longitudeDeg = droneState.getHome().getLongitudeDeg();
+            GEO_HOME = new LatLng(latitudeDeg,longitudeDeg);
+        }
         Log.i(TAG,"THE HOME IS: " + GEO_HOME);
 
         // 设置HOME的位置为 起飞地
         points.clear();
         points.add(GEO_HOME);
         clearOverlay(homeOverlay);
-        homeOverlay = drawOverlay(GEO_CURRENT, R.drawable.home);
+        homeOverlay = drawOverlay(GEO_HOME, R.drawable.home);
 
         // 重设地图焦点
         mBaiduMap.setMapStatus(MapStatusUpdateFactory
@@ -319,9 +323,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
                         "Longitude: " + df.format(LONGITUDE) + "\n" +
                         "Aam: " + df.format(AAM) + "\n" +
                         "Ram: " + df.format(RAM) + "\n" +
-                        "Heading:" + HEADING + "\n" +
-                        "PITCH: " + df.format(PITCH) + "\n" +
-                        "ROLL: " + df.format(ROLL) + "\n";
+                        "Heading: " + HEADING + "\n" +
+                        "Pitch: " + df.format(PITCH) + "\n" +
+                        "Roll: " + df.format(ROLL) + "\n";
 
                 stateInfoText =
                         "Battery: " + droneState.getBattery().getRemainingPercent() + "\n" +
@@ -375,52 +379,47 @@ public class MapActivity extends Activity implements View.OnClickListener {
         telemetry = drone.getTelemetry();
 
         subscribeAll();
-        Thread.sleep(1000);
+        Thread.sleep(1500);
         initHome();
-//        subscribePosition();
-//        subscribeHeading();
-//        subscribeAttitude();
-
 
     }
 
     /**
-     *起飞: arm -》 设置飞行高度 -》 起飞
+     *起飞: 检查健康状态-》arm -》 设置飞行高度 -》 起飞
      */
     @SuppressLint("CheckResult")
     public void takeoff(){
-
-        action.arm()
-                .delay(500,TimeUnit.MILLISECONDS)
-                .andThen(action.takeoff())
-                .subscribe();
-//        telemetry.getArmed()
-//                .take(1)
-//                .subscribe(isArmed -> {
-//                    toastMessage("Check arm: " + isArmed);
-//                    if(isArmed) {
-//                        action.setTakeoffAltitude(2.5f)
-//                                .andThen(action.takeoff()
-//                                                .doOnComplete(() -> {
-//                                                    toastMessage("Take off with armed!");
-//                                                    Log.i(TAG, "Take off whit armed");
-//                                                })
-//                                ).subscribe();
-//                    } else {
-//                        action.arm()
-//                                .delay(2,TimeUnit.SECONDS)
-//                                .andThen(
-//                                        action.setTakeoffAltitude(250f)
-//                                                .andThen(action.takeoff())
-//                                )
-//                                .doOnComplete(()-> {
-//                                    toastMessage("The drone is takeoff to 2.5m");
-//                                    Log.i(TAG, "The drone is takeoff to 2.5m");
-//                                })
-//                                .subscribe();
-//                    }
-//                });
-
+        if (!droneState.isAllOk()) {
+            showToast("Please check!");
+            return;
+        }
+//        // 在实验环境下用简单版
+//        action.takeoff()
+//                .doOnError(throwable -> {
+//                   toastMessage("take off failed");
+//                }).subscribe();
+        // 仿真环境下可用完整版
+        if (droneState.isArmed()) {
+            action.setTakeoffAltitude(2.5f)
+                    .andThen(action.takeoff()
+                            .doOnComplete(() -> {
+                                toastMessage("The drone is takeoff to 2.5m");
+                                Log.i(TAG, "The drone is takeoff to 2.5m");
+                            })
+                    ).subscribe();
+        } else {
+            action.arm()
+                    .delay(2,TimeUnit.SECONDS)
+                    .andThen(
+                            action.setTakeoffAltitude(250f)
+                                    .andThen(action.takeoff())
+                    )
+                    .doOnComplete(()-> {
+                        toastMessage("The drone is takeoff to 2.5m");
+                        Log.i(TAG, "The drone is takeoff to 2.5m");
+                    })
+                    .subscribe();
+        }
 
     }
 
@@ -512,11 +511,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private void moveTo(int pos) {
         getPosition();
         // 必须先连接
-        if(PORT == 0) return;
-//        if(current.getAam() <= 0.5f) {
-//            showToast("Please takeoff before move!");
-//            return;
-//        }
+        if (droneState.getFlightMode() != Telemetry.FlightMode.HOLD) return;
+        if (!droneState.isInAir()) {
+            showToast("Please takeoff before move");
+            return;
+        }
 
         if(pos == 1) {
             next.setPos(current.getLatitude() + OFFSET,
@@ -563,9 +562,8 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Move to " + pos + "\n" + next);
                     Log.i(TAG,"Move to " + pos + "\n" + next);
-                    GEO_DESTINATION = next.getLatLng();
                     if(pos != 5 && pos != 6) {
-                        addPosition(GEO_DESTINATION);
+                        addPosition(next.getLatLng());
                         drawTrajectory();
                     }
                 })
@@ -599,7 +597,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private void changeScale(){
         if(!scaleFlag) {
             //约 10 m
-            OFFSET = 0.0001;
+            OFFSET = 0.00005;
             scaleBtn.setBackgroundResource(R.drawable.divide);
             scaleFlag = true;
             showToast("Bigger!");
@@ -631,7 +629,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
      */
     private void getPosition(){
         current.setPos(LATITUDE,LONGITUDE,AAM,YAW);
-        GEO_CURRENT = current.getLatLng();
     }
 
     /*-----------------------------------------------地图部分----------------------------*/
@@ -671,7 +668,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .icon(bitmap)
                 .anchor(0.5f,0.5f);
 
-        Log.d("Marker","Draw a " + bitmapID + ": " + option);
+        //Log.d("Marker","Draw a " + bitmapID + ": " + option);
         //在地图上添加Marker，并显示
         return mBaiduMap.addOverlay(option);
 
@@ -764,6 +761,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 订阅Attitude信息：row pitch yaw
      */
+    @SuppressLint("CheckResult")
     private void subscribeAttitude(){
         //获取xyz轴偏角、时间戳
         telemetry.getAttitudeEuler()
@@ -788,6 +786,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 订阅Heading信息： +是顺时针，-是逆时针
      */
+    @SuppressLint("CheckResult")
     private void subscribeHeading(){
         // 获取朝向
         telemetry.getHeading()
@@ -805,6 +804,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 订阅Position信息
      */
+    @SuppressLint("CheckResult")
     private void subscribePosition(){
         // 每500ms更新
         // 获取位置信息
@@ -843,6 +843,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 订阅arm信息 2s
      */
+    @SuppressLint("CheckResult")
     private void subscribeArm(){
         telemetry.getArmed()
                 .doOnError(throwable -> {
@@ -858,6 +859,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 订阅Connect信息 2s
      */
+    @SuppressLint("CheckResult")
     private void subscribeConnect(){
         drone.getCore()
                 .getConnectionState()
@@ -895,7 +897,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                     toastMessage("Failed to get isInAir: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get isInAir: " + throwable.getMessage());
                 })
-                .sample(5000,TimeUnit.MILLISECONDS)
+                .sample(2000,TimeUnit.MILLISECONDS)
                 .subscribe(isInAir -> {
                     droneState.setInAir(isInAir);
                 });
@@ -941,6 +943,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .sample(500,TimeUnit.MILLISECONDS)
                 .subscribe(
                         groundTruth -> {
+                            LATITUDE = groundTruth.getLatitudeDeg();
+                            LONGITUDE = groundTruth.getLongitudeDeg();
+                            AAM = groundTruth.getAbsoluteAltitudeM();
                             droneState.setGroundTruth(groundTruth);
                         }
                 );
@@ -1091,8 +1096,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go forward " + OFFSET + "°");
                     Log.i(TAG,"Go forward " + OFFSET + "°");
-                    GEO_DESTINATION = next.getLatLng();
-                    addPosition(GEO_DESTINATION);
+                    addPosition(next.getLatLng());
                     drawTrajectory();
 
                 })
@@ -1116,8 +1120,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go back " + OFFSET + "°");
                     Log.i(TAG,"Go back " + OFFSET + "°");
-                    GEO_DESTINATION = next.getLatLng();
-                    addPosition(GEO_DESTINATION);
+                    addPosition(next.getLatLng());
                     drawTrajectory();
                 })
                 .doOnError(throwable -> {
@@ -1139,8 +1142,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go left " + OFFSET + "°");
                     Log.i(TAG,"Go left " + OFFSET + "°");
-                    GEO_DESTINATION = next.getLatLng();
-                    addPosition(GEO_DESTINATION);
+                    addPosition(next.getLatLng());
                     drawTrajectory();
                 })
                 .doOnError(throwable -> {
@@ -1162,8 +1164,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go right " + OFFSET + "°");
                     Log.i(TAG,"Go right " + OFFSET + "°");
-                    GEO_DESTINATION = next.getLatLng();
-                    addPosition(GEO_DESTINATION);
+                    addPosition(next.getLatLng());
                     drawTrajectory();
 
                 })
@@ -1185,7 +1186,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go up 0.5M");
                     Log.i(TAG,"Go down 0.5M");
-                    GEO_DESTINATION = next.getLatLng();
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to go up: " + throwable.getMessage());
@@ -1205,7 +1205,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Go down 0.5M");
                     Log.i(TAG,"Go down 0.5M");
-                    GEO_DESTINATION = next.getLatLng();
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to go down: " + throwable.getMessage());
@@ -1228,7 +1227,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Turn left 45");
                     Log.i(TAG,"Turn left 45");
-                    GEO_DESTINATION = next.getLatLng();
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to turn left: " + throwable.getMessage());
@@ -1251,7 +1249,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .doOnComplete( ()->{
                     toastMessage("Turn right 45");
                     Log.i(TAG,"Turn right 45");
-                    GEO_DESTINATION = next.getLatLng();
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to turn right: " + throwable.getMessage());

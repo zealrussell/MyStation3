@@ -1,7 +1,7 @@
 # 一、项目简介
 
 &emsp;&emsp;本项目旨在采用MAVSDK-Java开发一个“无人机Android地面站”软件，该软件能操作所有支持mavlink协议的无人机、无人车设备，以往的无人机地面站软件开发大致分两种：1. 基于QT修改QGroundControl软件 2.自行通过mavlink消息集生成java代码。 而本项目可直接使用Android Studio、SDK开发，更符合现代Android应用开发。功能有：数据显示、悬停、前进固定距离、后退、左移、右移、上升、下降、图传。
-地址：https://github.com/zealrussell/MyStation3,使用前请到app-》libs目录下下载aar包到自己的libs目录下
+地址：https://github.com/zealrussell/MyStation3,使用前请到app->libs目录下下载aar包到自己的libs目录下
 本项目结构如下：
 
 ```
@@ -34,6 +34,10 @@ com.zeal.mystation3
 
 &emsp;&emsp;控制软件时需要先点“连接”，然后点“起飞”，即可移动。
 
+<img src="https://zeal-picture.oss-cn-chengdu.aliyuncs.com/img/Screenshot_20220505_224103_com.zeal.mavsdk.jpg" alt="app" style="zoom: 25%;" />
+
+<img src="https://zeal-picture.oss-cn-chengdu.aliyuncs.com/img/Screenshot_20220509_142519_com.zeal.mystation3.jpg" alt="图传模块" style="zoom:25%;" />
+
 
 
 # 三、环境配置
@@ -46,7 +50,7 @@ com.zeal.mystation3
 
 项目地址[Introduction · MAVSDK Guide (mavlink.io)](https://mavsdk.mavlink.io/main/en/index.html)
 
-建议先参考快速入门体验其用法，再根据java版体会RxJava的用户，最后上手Android。
+建议先参考快速入门体验其用法，再根据java版体会RxJava的用法，最后上手Android。注意Android版server不支持x86，所以最好用真机
 
 ### 2.1 MAVSDK官方文档介绍
 
@@ -57,7 +61,7 @@ com.zeal.mystation3
 | Action      | 执行飞行动作，包括起飞、降落、移动等 |
 | Calibration | 校准                                 |
 | Camera      | 操作摄像机                           |
-| Failure     | 自定义的错误类                       |
+| Failure     | sdk自定义的错误类                    |
 | FollowMe    | 跟随                                 |
 | Ftp         | 通过ftp升级固件                      |
 | Geofence    | 设置禁飞区等                         |
@@ -67,24 +71,24 @@ com.zeal.mystation3
 | Mission     | 设置飞行任务                         |
 | Offboard    |                                      |
 | Shell       | 通过shell发送指令                    |
-| Telemetry   | 获取经、纬、高等信息                 |
+| Telemetry   | 获取无人机的各种信息，如经、纬、高度 |
 
-本项目主要用到了Action类、Telemetry类，Action类比较简单，直接使用即可，这里介绍下Telemetry
+本项目主要用到了Action类、Telemetry类。Action类比较简单，直接使用即可，这里介绍下Telemetry
 
 | 函数                 | 介绍                                              |
 | -------------------- | ------------------------------------------------- |
 | getPosition()        | 获取无人机当前位置:经度、纬度、绝对高度、相对高度 |
-| getRawGps()          | 获取Gps信息：经度、纬度、绝对高度                 |
-| getGroundTruth()     | 获取Gps信息                                       |
+| getRawGps()          | 获取gps信息：经度、纬度、绝对高度                 |
+| getGroundTruth()     | 获取gps信息                                       |
 | getGpsGlobalOrigin() | 还是gps                                           |
-| getGpsInfo()         | 获取Gps自身的信息，包括gps个数等                  |
+| getGpsInfo()         | 获取gps自身的信息，包括gps个数等                  |
 | getArmed()           | 是否arm                                           |
-| getHealthAllOk()     | 是否                                              |
+| getHealthAllOk()     | 是否所有设备一切正常                              |
 | getInAir()           | 是否在空中                                        |
 | getBattery()         | 获取电池信息：剩余电量、电压                      |
 | getHeading()         | 获取头朝向                                        |
 | getAttitudeEuler()   | 获取xyz轴信息：roll pitch yaw                     |
-|                      |                                                   |
+| getFlightMode()      | 获取飞行状态，结果为一个枚举类                    |
 |                      |                                                   |
 |                      |                                                   |
 
@@ -94,10 +98,11 @@ com.zeal.mystation3
 
 #### 1. 安卓导入gradle
 
+采用C/S模式，因此要导两个
+
 ```java
 //mavsdk
 implementation 'io.mavsdk:mavsdk:1.1.1'
-//https://mvnrepository.com/artifact/io.mavsdk/mavsdk-server
 implementation 'io.mavsdk:mavsdk-server:1.1.1'
 ```
 
@@ -107,7 +112,7 @@ implementation 'io.mavsdk:mavsdk-server:1.1.1'
  docker run --name mygazebo --rm -it jonasvautherin/px4-gazebo-headless:1.12.3 <ip.your.phone>
 ```
 
-注：mavsdk-java采用C/S架构，其server端集成在安卓中，通过`mavserver.run("ADDRESS")`方法运行，而px4仿真飞控监听指定IP的14540端口，因此必须主要安卓端IP正确，否则server无法连接。该IP在AVD上有问题，建议在真机上调试。
+注：mavsdk-java采用C/S架构，其server端集成在安卓中，通过`mavserver.run("ADDRESS")`方法运行，而px4仿真飞控监听指定IP的14540端口，因此必须注意安卓端IP正确，否则server无法连接。该IP在AVD上有问题，建议在真机上调试。
 
 #### 3. 代码
 
@@ -125,7 +130,7 @@ drone.getAction().takeoff().subscribe();
 drone.getAction()
     .takeoff()
     .doOnError(throwable -> {
-        Log.d("error:");
+        Log.d("error");
     })
     .doOnComplete(()->{
         Log.d("success");
@@ -134,6 +139,8 @@ drone.getAction()
        	Log.d("subscribe");
     });
 ```
+
+执行顺序为 先subscri后error/complete，被订阅者会根据情况发送error/comple二选一
 
 ## 3. 图传集成
 
