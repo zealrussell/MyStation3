@@ -50,9 +50,9 @@ public class DroneState {
         heading = new Telemetry.Heading(0.0);
         position = new Telemetry.Position(0.0,0.0,0f,0f);
         home = new Telemetry.Position(0.0,0.0,0f,0f);
-        eulerAngle = new Telemetry.EulerAngle(0f,0f,0f, 0l);
+        eulerAngle = new Telemetry.EulerAngle(0f,0f,0f, 0L);
         health = new Telemetry.Health(false,false,false,false,false,false,false);
-        quaternion = new Telemetry.Quaternion(0f,0f,0f,0f,0l);
+        quaternion = new Telemetry.Quaternion(0f,0f,0f,0f, 0L);
 
         gpsGlobalOrigin = new Telemetry.GpsGlobalOrigin(0.0,0.0,0f);
         gpsInfo = new Telemetry.GpsInfo(0,null);
@@ -60,7 +60,7 @@ public class DroneState {
         flightMode =  Telemetry.FlightMode.UNKNOWN;
         landedState = Telemetry.LandedState.UNKNOWN;
         battery = new Telemetry.Battery(0,0f,0f);
-        imu= new Telemetry.Imu(null,null,null,0f, 0l);
+        imu= new Telemetry.Imu(null,null,null,0f, 0L);
         distanceSensor = new Telemetry.DistanceSensor(0f,0f,0f);
         fixedwingMetrics = new Telemetry.FixedwingMetrics(0f,0f,0f);
 

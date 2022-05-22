@@ -2,9 +2,12 @@ package com.zeal.mystation3.utils;
 
 import android.util.Log;
 
+import com.zeal.mystation3.entity.MyPosition;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.List;
 
 public class FileUtils {
     private static final String TAG = "FileUtils";
@@ -30,6 +33,34 @@ public class FileUtils {
             Log.d(TAG, "写入错误: " + e.toString());
         }
     }
+
+    public static void writeTxtToFileFromList(List<MyPosition> myPositionListst, String filePath, String fileName) {
+        //生成文件夹之后，再生成文件，不然会出错
+        makeFile(filePath, fileName);
+        String mFilePath = filePath + fileName;
+
+        try {
+            File file = new File(mFilePath);
+            if (!file.exists()) {
+                Log.d(TAG, "创建文件: " + mFilePath);
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            }
+            RandomAccessFile mRandomAccessFile = new RandomAccessFile(file, "rwd");
+            mRandomAccessFile.seek(file.length());
+            mRandomAccessFile.write("------------开始日志------------".getBytes());
+            for(MyPosition position : myPositionListst){
+                // 每次写入时，都换行写
+                String mContent = position.formLog() + "\r\n";
+                mRandomAccessFile.write(mContent.getBytes());
+            }
+            mRandomAccessFile.write("------------结束日志------------".getBytes());
+            mRandomAccessFile.close();
+        } catch (IOException e) {
+            Log.d(TAG, "写入错误: " + e.getMessage());
+        }
+    }
+
     //生成文件
     public static File makeFile(String filePath, String fileName) {
         File file = null;

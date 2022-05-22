@@ -1,16 +1,25 @@
 package com.zeal.mystation3.entity;
 import com.baidu.mapapi.model.LatLng;
 
+import java.text.SimpleDateFormat;
+
+// 飞行数据类
 public class MyPosition {
+    // 经纬高
     private double latitude;
     private double longitude;
     private float aam;
     private float ram;
-
+    //俯仰航
     private float roll;
     private float pitch;
     private float yaw;
+
+    //时间
     private long timestamp;
+    private String date;
+
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public MyPosition() {
     }
@@ -36,9 +45,10 @@ public class MyPosition {
         this.pitch = pitch;
         this.yaw = yaw;
         this.timestamp = timestamp;
+        this.date = formatter.format(timestamp);
     }
 
-    public void setAll(double latitude, double longitude, float aam, float ram) {
+    public void setByPosition(double latitude, double longitude, float aam, float ram) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.aam = aam;
@@ -119,15 +129,23 @@ public class MyPosition {
         this.timestamp = timestamp;
     }
 
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
     public String formLog() {
-        return "LATITUDE=" + latitude +
-                ", LONGITUDE=" + longitude +
+        return "[      " + date  +"     ]" +
+                "LATITUDE=" + latitude + "\n" +
+                ", LONGITUDE=" + longitude + "\n" +
                 ", AAM=" + aam +
-                ", RAM=" + ram +
+                ", RAM=" + ram + "\n" +
                 ", ROLL=" + roll +
                 ", PITCH=" + pitch +
-                ", YAM=" + yaw +
-                ", TIMESTAMP=" + timestamp;
+                ", YAM=" + yaw + "\n";
     }
 
     @Override
@@ -135,6 +153,6 @@ public class MyPosition {
         return  "Latitude=" + latitude + "\n" +
                 "Longitude=" + longitude + "\n" +
                 "Aam=" + aam + "\n" +
-                "Ram=" + ram;
+                "Ram=" + ram  + "\n\n";
     }
 }
