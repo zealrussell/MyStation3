@@ -34,7 +34,7 @@ public class FileUtils {
         }
     }
 
-    public static void writeTxtToFileFromList(List<MyPosition> myPositionListst, String filePath, String fileName) {
+    public static boolean writeTxtToFileFromList(List<MyPosition> myPositionListst, String filePath, String fileName) {
         //生成文件夹之后，再生成文件，不然会出错
         makeFile(filePath, fileName);
         String mFilePath = filePath + fileName;
@@ -56,8 +56,10 @@ public class FileUtils {
             }
             mRandomAccessFile.write("------------结束日志------------".getBytes());
             mRandomAccessFile.close();
+            return true;
         } catch (IOException e) {
             Log.d(TAG, "写入错误: " + e.getMessage());
+            return false;
         }
     }
 

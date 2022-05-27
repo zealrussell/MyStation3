@@ -137,8 +137,13 @@ public class MyPosition {
         this.date = date;
     }
 
+    // TODO 自定义输出格式
+    /**
+     * 生成飞行数据文本
+     * @return 文本
+     */
     public String formLog() {
-        return "[      " + date  +"     ]" +
+        return "[" + timestamp  +"]" + "\n" +
                 "LATITUDE=" + latitude + "\n" +
                 ", LONGITUDE=" + longitude + "\n" +
                 ", AAM=" + aam +

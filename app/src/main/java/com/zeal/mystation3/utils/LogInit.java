@@ -10,7 +10,7 @@ import com.apkfuns.logutils.file.LogFileFilter;
 
 
 /**
- * Created by pqpo on 2017/11/24.
+ *
  */
 public class
 LogInit {
@@ -20,7 +20,7 @@ LogInit {
     public static void init(Context context) {
         LogUtils.getLogConfig()
                 .configAllowLog(true)  // 是否在Logcat显示日志
-                .configTagPrefix("zeallog") // 配置统一的TAG 前缀
+                .configTagPrefix("ZEALLOG") // 配置统一的TAG 前缀
                 .configFormatTag("%d{HH:mm:ss:SSS} %t %c{-5}") // 首行显示信息(可配置日期，线程等等)
                 .configShowBorders(true) // 是否显示边框
                 .configLevel(LogLevel.TYPE_VERBOSE); // 配置可展示日志等级

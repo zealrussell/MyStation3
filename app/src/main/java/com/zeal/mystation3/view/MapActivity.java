@@ -34,6 +34,7 @@ import com.zeal.mystation3.entity.DroneState;
 import com.zeal.mystation3.entity.MyPosition;
 import com.zeal.mystation3.utils.FileUtils;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,14 +50,16 @@ import io.mavsdk.telemetry.Telemetry;
 public class MapActivity extends Activity implements View.OnClickListener {
 
     private static final DecimalFormat df = new DecimalFormat("#0.000000");
-    private static final String PATH = Environment.getExternalStorageDirectory().getAbsolutePath() +"/" + MyApplication.DIRECTORY_NAME +"/logs/";
     private static final String TAG = "ZEALTAG";
     private static final String BACKEND_IP_ADDRESS = "127.0.0.1";
     private static final String ADDRESS = "udp://:14540";
-
     private static int PORT = 0;
-    private boolean scaleFlag;
-    private boolean infoFlag;
+
+
+    // Handler消息:更新状态、更新位置、显示toast
+    private static final int UPDATE_STATE = 0;
+    public static final int UPDATE_POSITION = 1;
+    public static final int UPDATE_TOAST = 2;
 
     // 无人机相关
     private final MavsdkServer mavsdkServer = new MavsdkServer();
@@ -66,19 +69,11 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private Action action;
     private Telemetry telemetry;
 
-    private static String valueInfoText;
-    private static String stateInfoText;
-
-    // Handler消息
-    private static final int UPDATE_STATE = 0;
-    public static final int UPDATE_POSITION = 1;
-    public static final int UPDATE_TOAST = 2;
-
     // 方向有关变量
     private static double OFFSET = 0.00001; // 1m
-    private static double LATITUDE = 32.024927;
-    private static double LONGITUDE = 118.854396;
-    private static float AAM = 2F;
+    private static double LATITUDE = 32.030827;
+    private static double LONGITUDE = 118.859596;
+    private static float AAM = 48F;
     private static float RAM = 0F;
     private static double HEADING = 0.0;
 
@@ -87,10 +82,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private static float YAW;
     private static long TIMESTAMP;
     // 一些经纬度
-    private static final LatLng GEO_NJUST = new LatLng(32.024927, 118.854396);
+    private static final LatLng GEO_NJUST = new LatLng(32.030827, 118.859596);
     private static LatLng GEO_HOME;
 
-    //
+    // 用于移动操作
     private static final MyPosition current = new MyPosition();
     private static final MyPosition next = new MyPosition();
 
@@ -107,8 +102,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
     // UI控件
     private TextView tv;
     private ImageButton scaleBtn, changeTextBtn;
+    private boolean scaleFlag, infoFlag;
 
-
+    //------------------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,7 +113,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
         initView();
         initMap();
 
-        new Thread(new TextViewThread()).start();
     }
 
     @Override
@@ -134,18 +129,32 @@ public class MapActivity extends Activity implements View.OnClickListener {
         mMapView.onPause();
     }
 
+    // 结束时取消订阅、停止连接、存储文件
     @Override
     protected void onDestroy() {
         super.onDestroy();
         //在activity执行onDestroy时执行mMapView.onDestroy()，实现地图生命周期管理
         mMapView.onDestroy();
+        try {
+            drone.dispose();
+            mavsdkServer.stop();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
 
-        FileUtils.writeTxtToFileFromList(positionsLog,
-                PATH,
-                LocalDateTime.now().toString() + "log.txt");
+        //如果没飞，直接退出
+        if(positionsLog.isEmpty()) return;
+
+        // 保存文件，成功|失败
+        String PATH = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator
+                        + MyApplication.DIRECTORY_NAME + File.separator + "data" + File.separator;
+        if( FileUtils.writeTxtToFileFromList(positionsLog, PATH,
+                    LocalDateTime.now() + "log.txt") ){
+            showToast("Store the log");
+        } else {
+            showToast("Failed to store");
+        }
         positionsLog.clear();
-        drone.dispose();
-        mavsdkServer.stop();
 
     }
 
@@ -205,7 +214,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 land();
                 return true;
             } else if (id == R.id.btn_camera) {
-                Intent intent = new Intent(MapActivity.this, SplashActivity.class);
+                Intent intent = new Intent(MapActivity.this, USBCameraActivity.class);
                 startActivity(intent);
                 return true;
             } else return false;
@@ -221,31 +230,31 @@ public class MapActivity extends Activity implements View.OnClickListener {
     public void onClick (View v) {
         switch (v.getId()) {
             case R.id.btn_forward:
-                moveTo(1);
+                goForward();
                 break;
             case R.id.btn_backward:
-                moveTo(2);
+                goBackward();
                 break;
             case R.id.btn_leftward:
-                moveTo(3);
+                goLeftward();
                 break;
             case R.id.btn_rightward:
-                moveTo(4);
+                goRightward();
                 break;
             case R.id.btn_hold:
                 hold();
                 break;
             case R.id.btn_upward:
-                moveTo(5);
+                goUpward();
                 break;
             case R.id.btn_downward:
-                moveTo(6);
+                goDownward();
                 break;
             case R.id.btn_scale:
                 changeScale();
                 break;
             case R.id.btn_change_text:
-                changeViewText();
+                changeTextView();
                 break;
         }
     }
@@ -258,6 +267,8 @@ public class MapActivity extends Activity implements View.OnClickListener {
         //设置中心点为南理，缩放比例尺 5m
         builder.target(GEO_NJUST).zoom(20.0f);
         mBaiduMap.setMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
+        // 开启卫星地图
+        //mBaiduMap.setMapType(BaiduMap.MAP_TYPE_SATELLITE);
         // 开启定位图层
         mBaiduMap.setMyLocationEnabled(true);
 
@@ -270,16 +281,15 @@ public class MapActivity extends Activity implements View.OnClickListener {
      * 初始化HOME地点
      */
     private void initHome(){
-        getPosition();
         if (!droneState.getHealth().getIsHomePositionOk()) {
             showToast("Failed to set home!Please check.");
             return;
         }
-        if (GEO_HOME == null ) {
-            double latitudeDeg = droneState.getHome().getLatitudeDeg();
-            double longitudeDeg = droneState.getHome().getLongitudeDeg();
-            GEO_HOME = new LatLng(latitudeDeg,longitudeDeg);
-        }
+
+        double latitudeDeg = droneState.getHome().getLatitudeDeg();
+        double longitudeDeg = droneState.getHome().getLongitudeDeg();
+        GEO_HOME = new LatLng(latitudeDeg,longitudeDeg);
+
         Log.i(TAG,"THE HOME IS: " + GEO_HOME);
 
         // 设置HOME的位置为 起飞地
@@ -287,7 +297,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
         points.add(GEO_HOME);
         clearOverlay(homeOverlay);
         homeOverlay = drawOverlay(GEO_HOME, R.drawable.home);
-
         // 重设地图焦点
         mBaiduMap.setMapStatus(MapStatusUpdateFactory
                 .newMapStatus(builder
@@ -310,26 +319,24 @@ public class MapActivity extends Activity implements View.OnClickListener {
             super.handleMessage(msg);
             if (msg.what == MapActivity.UPDATE_POSITION) {
 
-                valueInfoText =
-                        "Latitude: " + df.format(LATITUDE) + "\n" +
+                String valueInfoText = "Latitude: " + df.format(LATITUDE) + "\n" +
                         "Longitude: " + df.format(LONGITUDE) + "\n" +
                         "Aam: " + df.format(AAM) + "\n" +
                         "Ram: " + df.format(RAM) + "\n" +
-                        "Heading: " + HEADING + "\n" +
+                        "Heading: " + df.format(HEADING) + "\n" +
                         "Pitch: " + df.format(PITCH) + "\n" +
                         "Roll: " + df.format(ROLL) + "\n";
 
-                stateInfoText =
-                        "Battery: " + droneState.getBattery().getRemainingPercent() + "\n" +
+                String stateInfoText = "Battery: " + droneState.getBattery().getRemainingPercent() + "\n" +
                         "Arm: " + droneState.isArmed() + "\n" +
                         "Connect: " + droneState.isConnected() + "\n" +
                         "AllOk: " + droneState.isAllOk() + "\n" +
                         "InAir: " + droneState.isInAir() + "\n" +
                         "FlightMode: " + droneState.getFlightMode() + "\n" +
                         "Home: " + droneState.getHome().getLatitudeDeg() + " "
-                                 + droneState.getHome().getLongitudeDeg() + "\n"
-                                 + droneState.getHome().getAbsoluteAltitudeM() + " "
-                                 + droneState.getHome().getRelativeAltitudeM();
+                        + droneState.getHome().getLongitudeDeg() + "\n"
+                        + droneState.getHome().getAbsoluteAltitudeM() + " "
+                        + droneState.getHome().getRelativeAltitudeM();
 
                 if(!infoFlag) {
                     tv.setText(valueInfoText);
@@ -358,6 +365,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 } else if (!droneState.getHealth().getIsGlobalPositionOk()) {
                     toastMessage("GlobalPosition failed");
                 }
+                if (droneState.getBattery().getRemainingPercent() < 0.2f) {
+                    toastMessage("Battery too low");
+                }
             }
 
 
@@ -365,7 +375,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     };
 
     /**
-     * 连接无人机： 订阅所有信息-》初始化无人机位置
+     * 连接无人机： 订阅所有信息-》更新textview-》初始化无人机位置
      */
     @SuppressLint("CheckResult")
     private void connect() throws InterruptedException {
@@ -378,12 +388,14 @@ public class MapActivity extends Activity implements View.OnClickListener {
             showToast("Run server failed");
         }
         showToast("Mavport is " + PORT);
+
         drone = new System(BACKEND_IP_ADDRESS, PORT);
         action = drone.getAction();
         telemetry = drone.getTelemetry();
 
         subscribeAll();
-        Thread.sleep(1500);
+
+        Thread.sleep(3000);
         initHome();
 
     }
@@ -413,9 +425,9 @@ public class MapActivity extends Activity implements View.OnClickListener {
                     ).subscribe();
         } else {
             action.arm()
-                    .delay(2,TimeUnit.SECONDS)
+                    .delay(1000,TimeUnit.MILLISECONDS)
                     .andThen(
-                            action.setTakeoffAltitude(250f)
+                            action.setTakeoffAltitude(2.5f)
                                     .andThen(action.takeoff())
                     )
                     .doOnComplete(()-> {
@@ -432,6 +444,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
      */
     @SuppressLint("CheckResult")
     public void land(){
+        if (!droneState.isInAir()) {
+            showToast("Please takeoff before land!");
+            return;
+        }
         action.land()
                 .doOnComplete( () -> {
                     toastMessage("The drone is landing...");
@@ -470,7 +486,13 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 返回到起飞点
      */
+    @SuppressLint("CheckResult")
     public void returnToLaunch() {
+        if (!droneState.isInAir()) {
+            showToast("Please takeoff before return!");
+            return;
+        }
+
         action.setReturnToLaunchAltitude(5.0f)
                 .andThen(
                         action
@@ -496,6 +518,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
      * 强制停止
      */
     private void kill(){
+        if (!droneState.isArmed()) {
+            showToast("The drone even not arm!");
+            return;
+        }
         action.kill()
                 .doOnComplete(() -> {
                     toastMessage("The drone is killed");
@@ -512,6 +538,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
      * 移动，成功则绘制懂轨迹
      * @param pos 方位：上 下 左 右 升 降
      */
+    @Deprecated
     private void moveTo(int pos) {
         getPosition();
         // 必须先连接
@@ -582,6 +609,10 @@ public class MapActivity extends Activity implements View.OnClickListener {
      * 悬停：
      */
     private void hold(){
+        if (!droneState.isInAir()) {
+            showToast("Please takeoff before hold!");
+            return;
+        }
         action.hold()
                 .doOnComplete(() -> {
                     toastMessage("Hold the drone");
@@ -618,22 +649,13 @@ public class MapActivity extends Activity implements View.OnClickListener {
     /**
      * 点击切换TextView
      */
-    private void changeViewText(){
+    private void changeTextView(){
         infoFlag = !infoFlag;
         if (infoFlag) {
             changeTextBtn.setBackgroundResource(R.drawable.value_info);
         } else changeTextBtn.setBackgroundResource(R.drawable.state_info);
     }
 
-
-    /*----------------------------------- 一些工具函数 ------------------------------*/
-
-    /**
-     * 更新位置，刷新
-     */
-    private void getPosition(){
-        current.setPos(LATITUDE,LONGITUDE,AAM,YAW);
-    }
 
     /*-----------------------------------------------地图部分----------------------------*/
     // 地图有关函数
@@ -716,6 +738,15 @@ public class MapActivity extends Activity implements View.OnClickListener {
         lineOverlay = mBaiduMap.addOverlay(polylineOptions);
     }
 
+    /*----------------------------------- 一些工具函数 ------------------------------*/
+
+    /**
+     * 更新位置，刷新
+     */
+    private void getPosition(){
+        current.setPos(LATITUDE,LONGITUDE,AAM,YAW);
+    }
+
     /**
      * 展示toast，并打印日志
      */
@@ -740,19 +771,25 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
 
 
-    /*!----------------Deprecated----------*/
+    /*!----------------订阅----------*/
 
+    /**
+     * 统一订阅
+     */
     private void subscribeAll(){
         if (drone == null) return;
+        // 开始显示textview
+        new TextViewThread().start();
+
         subscribeConnect();
         subscribeAllOk();
         subscribeHealth();
         subscribeArm();
         subscribeInAir();
-
         subscribeHome();
         subscribeBattery();
         subscribeFlightMode();
+
         subscribeAttitude();
         subscribeHeading();
         subscribePosition();
@@ -785,7 +822,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 订阅Heading信息： +是顺时针，-是逆时针
+     * 订阅Heading信息： +是顺时针，-是逆时针。HEADING和YAW是一个东西
      */
     @SuppressLint("CheckResult")
     private void subscribeHeading(){
@@ -811,7 +848,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
         // 获取位置信息
         telemetry.getPosition()
                 .doOnComplete(() -> {
-                    toastMessage("Flight Complicated!!");
                     Log.i(TAG, "Finish position");
                 })
                 .doOnError(throwable -> {
@@ -906,7 +942,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private void subscribeRawGps(){
         telemetry.getRawGps()
                 .doOnComplete(() -> {
-                    toastMessage("Flight Complicated!!");
                     Log.i(TAG, "Finish position");
                 })
                 .doOnError(throwable -> {
@@ -930,7 +965,6 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private void subscribeGroundTruth(){
         telemetry.getGroundTruth()
                 .doOnComplete(() -> {
-                    toastMessage("Flight Complicated!!");
                     Log.i(TAG, "Finish position");
                 })
                 .doOnError(throwable -> {
@@ -968,19 +1002,18 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 订阅GPS信息 5s
+     * 订阅GPS信息 2s
      */
     private void subscribeGpsInfo(){
         telemetry.getGpsInfo()
                 .doOnComplete(() -> {
-                    toastMessage("Flight Complicated!!");
                     Log.i(TAG, "Finish position");
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to get GpsInfo: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get GpsInfo: " + throwable.getMessage());
                 })
-                .sample(5000,TimeUnit.MILLISECONDS)
+                .sample(2000,TimeUnit.MILLISECONDS)
                 .subscribe(
                         gpsInfo -> {
                             droneState.setGpsInfo(gpsInfo);
@@ -1006,7 +1039,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 订阅飞行状态：
+     * 订阅飞行状态：READY HOLD TAKEOFF LAND MISSION RETURN OFFBOARD FOLLOW 500ms
      */
     private void subscribeFlightMode(){
         telemetry.getFlightMode()
@@ -1023,7 +1056,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 订阅LandedState信息 5s
+     * 订阅LandedState信息 2s
      */
     private void subscribeLandedState(){
         telemetry.getLandedState()
@@ -1031,7 +1064,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                     toastMessage("Failed to get Home: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get Home: " + throwable.getMessage());
                 })
-                .sample(5000,TimeUnit.MILLISECONDS)
+                .sample(2000,TimeUnit.MILLISECONDS)
                 .subscribe(
                         landedState -> {
                             droneState.setLandedState(landedState);
@@ -1040,7 +1073,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 检查设备健康状态 5s
+     * 检查设备健康状态 2s
      */
     private void subscribeHealth(){
         telemetry.getHealth()
@@ -1048,7 +1081,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
                     toastMessage("Failed to get Health: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get Health: " + throwable.getMessage());
                 })
-                .sample(5000,TimeUnit.MILLISECONDS)
+                .sample(2000,TimeUnit.MILLISECONDS)
                 .subscribe(health -> {
                     droneState.setHealth(health);
                     if (!health.getIsLocalPositionOk()) {
@@ -1065,15 +1098,16 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 获取home信息 5s
+     * 获取home信息 2s
      */
+    @SuppressLint("CheckResult")
     private void subscribeHome(){
         telemetry.getHome()
                 .doOnError(throwable -> {
                     toastMessage("Failed to get Home: " + throwable.getMessage());
                     Log.e(TAG, "Failed to get Home: " + throwable.getMessage());
                 })
-                .sample(5000,TimeUnit.MILLISECONDS)
+                .take(1)
                 .subscribe(
                         home -> {
                            droneState.setHome(home);
@@ -1081,8 +1115,14 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 );
     }
 
-    @Deprecated
+    /**
+     * 前进
+     */
     public void goForward(){
+        if(!droneState.isInAir()){
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
         next.setPos(current.getLatitude() + OFFSET,
                 current.getLongitude(),
@@ -1098,15 +1138,21 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
                 })
                 .doOnError(throwable -> {
-                    toastMessage("Failed to go forward: " + throwable.getMessage());
+                    toastMessage("Failed to forward: " + throwable.getMessage());
                     Log.e(TAG, "Failed to forward: " + throwable.getMessage());
                 })
                 .subscribe();
 
     }
 
-    @Deprecated
+    /**
+     * 后退
+     */
     public void goBackward(){
+        if(!droneState.isInAir()){
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
         next.setPos(current.getLatitude() - OFFSET,
                 current.getLongitude(),
@@ -1127,11 +1173,17 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .subscribe();
     }
 
-    @Deprecated
+    /**
+     * 左移
+     */
     public void goLeftward(){
+        if(!droneState.isInAir()){
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
         next.setPos(current.getLatitude(),
-                current.getLongitude() + OFFSET,
+                current.getLongitude() - OFFSET,
                 current.getAam(),
                 current.getYaw());
 
@@ -1149,11 +1201,17 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .subscribe();
     }
 
-    @Deprecated
+    /**
+     * 右移
+     */
     public void goRightward(){
+        if(!droneState.isInAir()){
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
         next.setPos(current.getLatitude(),
-                current.getLongitude() - OFFSET,
+                current.getLongitude() + OFFSET,
                 current.getAam(),
                 current.getYaw());
 
@@ -1172,9 +1230,19 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .subscribe();
     }
 
-    @Deprecated
+    /**
+     * 上升
+     */
     public void goUpward(){
+        if (!droneState.isInAir()) {
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
+        if (current.getRam() >= 20) {
+            showToast("The drone is too high!!");
+            return;
+        }
         next.setPos(current.getLatitude(),
                 current.getLongitude(),
                 current.getAam() + 0.5f,
@@ -1182,7 +1250,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
         action.gotoLocation(next.getLatitude(), next.getLongitude(), next.getAam(),next.getYaw())
                 .doOnComplete( ()->{
                     toastMessage("Go up 0.5M");
-                    Log.i(TAG,"Go down 0.5M");
+                    Log.i(TAG,"Go up 0.5M");
                 })
                 .doOnError(throwable -> {
                     toastMessage("Failed to go up: " + throwable.getMessage());
@@ -1191,9 +1259,19 @@ public class MapActivity extends Activity implements View.OnClickListener {
                 .subscribe();
     }
 
-    @Deprecated
+    /**
+     * 下降
+     */
     public void goDownward(){
+        if(!droneState.isInAir()){
+            showToast("Please takeoff before move!");
+            return;
+        }
         getPosition();
+        if(current.getRam() <= 0.6) {
+            showToast("The drone is too low!");
+            return;
+        }
         next.setPos(current.getLatitude(),
                 current.getLongitude(),
                 current.getAam() - 0.5f,
@@ -1212,7 +1290,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     }
 
     /**
-     * 左转头45度
+     * 左转头45度(逆时针)
      */
     public void turnLeft(){
         getPosition();

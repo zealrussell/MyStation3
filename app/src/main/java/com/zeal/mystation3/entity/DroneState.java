@@ -7,6 +7,10 @@ import io.mavsdk.telemetry.Telemetry;
  * @version 1.0
  * @date 2022/5/17 22:52
  */
+
+
+
+// 保存无人机飞行的各种订阅数据
 public class DroneState {
     private boolean isArmed;
     private boolean isInAir;

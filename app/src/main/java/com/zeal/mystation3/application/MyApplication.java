@@ -2,9 +2,11 @@ package com.zeal.mystation3.application;
 
 import android.app.Application;
 
+import com.apkfuns.logutils.LogUtils;
 import com.baidu.mapapi.CoordType;
 import com.baidu.mapapi.SDKInitializer;
 import com.zeal.mystation3.utils.CrashHandler;
+import com.zeal.mystation3.utils.LogInit;
 
 
 public class MyApplication extends Application {
@@ -17,9 +19,13 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        //
+        //崩溃处理器，会将错误信息存入MtStation/log.txt
         mCrashHandler = CrashHandler.getInstance();
         mCrashHandler.init(getApplicationContext(), getClass());
+
+        // 保存日志的工具，使用参照
+        //LogInit.init(this);
+
 
         //在使用SDK各组件之前初始化context信息，传入ApplicationContext
         SDKInitializer.initialize(this);
