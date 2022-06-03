@@ -110,10 +110,10 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
                             e.printStackTrace();
                         }
                         Looper.prepare();
-                        if(mCameraHelper != null && mCameraHelper.isCameraOpened()) {
-                            mSeekBrightness.setProgress(mCameraHelper.getModelValue(UVCCameraHelper.MODE_BRIGHTNESS));
-                            mSeekContrast.setProgress(mCameraHelper.getModelValue(UVCCameraHelper.MODE_CONTRAST));
-                        }
+//                        if(mCameraHelper != null && mCameraHelper.isCameraOpened()) {
+//                            mSeekBrightness.setProgress(mCameraHelper.getModelValue(UVCCameraHelper.MODE_BRIGHTNESS));
+//                            mSeekContrast.setProgress(mCameraHelper.getModelValue(UVCCameraHelper.MODE_CONTRAST));
+//                        }
                         Looper.loop();
                     }
                 }).start();
@@ -228,54 +228,56 @@ public class USBCameraActivity extends AppCompatActivity implements CameraDialog
      */
     private void initView() {
         mToolbar = findViewById(R.id.toolbar);
-        mSeekBrightness = findViewById(R.id.seekbar_brightness);
-        mSeekContrast = findViewById(R.id.seekbar_contrast);
+        //mSeekBrightness = findViewById(R.id.seekbar_brightness);
+        //mSeekContrast = findViewById(R.id.seekbar_contrast);
         mTextureView = findViewById(R.id.camera_view);
         mSwitchVoice = findViewById(R.id.switch_rec_voice);
         setSupportActionBar(mToolbar);
 
-
-        // 设置seekbar的最大值
-        mSeekBrightness.setMax(100);
-        // 设置拖动事件
-        mSeekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mCameraHelper != null && mCameraHelper.isCameraOpened()) {
-                    mCameraHelper.setModelValue(UVCCameraHelper.MODE_BRIGHTNESS,progress);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        mSeekContrast.setMax(100);
-        mSeekContrast.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mCameraHelper != null && mCameraHelper.isCameraOpened()) {
-                    mCameraHelper.setModelValue(UVCCameraHelper.MODE_CONTRAST,progress);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
+        // 新版本去除了seekbar
+//        {
+//        // 设置seekbar的最大值
+//        mSeekBrightness.setMax(100);
+//        // 设置拖动事件
+//        mSeekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                if(mCameraHelper != null && mCameraHelper.isCameraOpened()) {
+//                    mCameraHelper.setModelValue(UVCCameraHelper.MODE_BRIGHTNESS,progress);
+//                }
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+//
+//        mSeekContrast.setMax(100);
+//        mSeekContrast.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                if (mCameraHelper != null && mCameraHelper.isCameraOpened()) {
+//                    mCameraHelper.setModelValue(UVCCameraHelper.MODE_CONTRAST, progress);
+//                }
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+//        }
     }
 
     /**

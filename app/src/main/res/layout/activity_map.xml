@@ -122,10 +122,10 @@
                 android:id="@+id/btn_upward"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:layout_alignParentBottom="true"
-                android:layout_marginBottom="125dp"
                 android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
                 android:layout_marginEnd="50dp"
+                android:layout_marginBottom="125dp"
                 android:background="@drawable/upward"
                 tools:ignore="SpeakableTextPresentCheck" />
 

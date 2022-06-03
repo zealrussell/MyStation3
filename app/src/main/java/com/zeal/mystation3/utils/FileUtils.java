@@ -48,7 +48,7 @@ public class FileUtils {
             }
             RandomAccessFile mRandomAccessFile = new RandomAccessFile(file, "rwd");
             mRandomAccessFile.seek(file.length());
-            mRandomAccessFile.write("------------开始日志------------".getBytes());
+            mRandomAccessFile.write("------------开始日志------------/n".getBytes());
             for(MyPosition position : myPositionListst){
                 // 每次写入时，都换行写
                 String mContent = position.formLog() + "\r\n";

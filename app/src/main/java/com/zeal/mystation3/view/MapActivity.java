@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.mavsdk.System;
 import io.mavsdk.action.Action;
+import io.mavsdk.gimbal.Gimbal;
 import io.mavsdk.mavsdkserver.MavsdkServer;
 import io.mavsdk.telemetry.Telemetry;
 
@@ -71,8 +72,8 @@ public class MapActivity extends Activity implements View.OnClickListener {
 
     // 方向有关变量
     private static double OFFSET = 0.00001; // 1m
-    private static double LATITUDE = 32.030827;
-    private static double LONGITUDE = 118.859596;
+    private static double LATITUDE = 32.032827;
+    private static double LONGITUDE = 118.858596;
     private static float AAM = 48F;
     private static float RAM = 0F;
     private static double HEADING = 0.0;
@@ -82,7 +83,7 @@ public class MapActivity extends Activity implements View.OnClickListener {
     private static float YAW;
     private static long TIMESTAMP;
     // 一些经纬度
-    private static final LatLng GEO_NJUST = new LatLng(32.030827, 118.859596);
+    private static final LatLng GEO_NJUST = new LatLng(32.032827, 118.858596);
     private static LatLng GEO_HOME;
 
     // 用于移动操作
